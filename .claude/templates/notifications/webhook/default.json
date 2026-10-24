@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2007/schema#",
+  "title": "SDET Webhook Payload",
+  "type": "object",
+  "properties": {
+    "event": {
+      "type": "string",
+      "enum": [
+        "pipeline.started",
+        "pipeline.completed",
+        "pipeline.failed",
+        "stage.started",
+        "stage.completed",
+        "stage.failed",
+        "quality_gate.failed",
+        "quality_gate.passed",
+        "flaky_test.detected",
+        "defect.created",
+        "defect.updated",
+        "defect.verified",
+        "release.readiness",
+        "deployment.started",
+        "deployment.completed",
+        "deployment.failed"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "workflow": {
+      "type": "string"
+    },
+    "project": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "branch": { "type": "string" }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-specific payload"
+    },
+    "context": {
+      "type": "object",
+      "description": "Shared context snapshot (filtered)"
+    },
+    "links": {
+      "type": "object",
+      "properties": {
+        "pipeline": { "type": "string", "format": "uri" },
+        "report": { "type": "string", "format": "uri" },
+        "artifacts": { "type": "string", "format": "uri" },
+        "context": { "type": "string", "format": "uri" }
+      }
+    }
+  },
+  "required": ["event", "timestamp", "runId", "workflow", "project"]
+}

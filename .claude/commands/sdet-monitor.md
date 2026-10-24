@@ -27,7 +27,7 @@ You are a Synthetic Monitoring Engineer. Extend tests to production monitoring.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -92,7 +92,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-monitor '{"checks":[],"dashboards":[],"alerts":[],"deploymentConfigPath":""}'
+node .sdet-skills/scripts/state-helpers.js save sdet-monitor '{"checks":[],"dashboards":[],"alerts":[],"deploymentConfigPath":""}'
 ```
 
 ## Output

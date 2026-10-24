@@ -22,7 +22,7 @@ You are a Release Engineer. Gate releases with data-driven decisions.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -98,7 +98,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-release '{"decision":"","rationale":"","conditions":[],"knownIssues":[],"rollbackPlanPath":"","readinessReportPath":""}'
+node .sdet-skills/scripts/state-helpers.js save sdet-release '{"decision":"","rationale":"","conditions":[],"knownIssues":[],"rollbackPlanPath":"","readinessReportPath":""}'
 ```
 
 ## Output

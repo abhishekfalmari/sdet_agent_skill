@@ -1,0 +1,228 @@
+# Quality Gates Configuration
+# Used by sdet-deploy, sdet-release, sdet-orchestrate
+# Place at: templates/configs/quality-gates.yaml
+
+version: "1.0"
+description: "Quality gate thresholds for SDET pipeline"
+
+# Global settings
+global:
+  failOnCritical: true
+  failOnHigh: true
+  warningOnMedium: true
+  blockOnQualityGateFailure: true
+
+# Code Coverage Thresholds
+coverage:
+  code:
+    line: 80
+    branch: 75
+    function: 80
+    statement: 80
+  requirement:
+    traceability: 100  # Every requirement must have test cases
+    automation: 90     # % of test cases automated
+  mutation:
+    score: 70          # Mutation testing score
+  risk:
+    highRiskCovered: 100
+    mediumRiskCovered: 90
+
+# Test Execution Gates
+execution:
+  passRate:
+    critical: 100      # Critical tests must all pass
+    high: 99.5
+    medium: 95
+    overall: 98
+  flakyRate:
+    threshold: 5       # Max % flaky tests
+    quarantineAfter: 3 # Quarantine after N flaky runs
+  duration:
+    maxTestSuiteMinutes: 60
+    maxSingleTestSeconds: 30
+  retry:
+    maxRetries: 2
+    retryFailedOnly: true
+
+# Defect Gates
+defects:
+  critical:
+    open: 0
+    maxAgeDays: 1
+  high:
+    open: 0
+    maxAgeDays: 3
+  medium:
+    open: 10
+    maxAgeDays: 14
+  low:
+    open: 50
+    maxAgeDays: 30
+  leakage:
+    escapedToProduction: 0
+    escapedToStaging: 2
+
+# Performance Gates
+performance:
+  api:
+    p50Ms: 200
+    p95Ms: 500
+    p99Ms: 1000
+    errorRate: 0.001   # 0.1%
+    throughputRps: 1000
+  ui:
+    loadTimeMs: 3000
+    fcpMs: 1500
+    lcpMs: 2500
+    cls: 0.1
+    fidMs: 100
+  loadTest:
+    vus: 1000
+    durationMinutes: 10
+    errorRateThreshold: 0.01
+    p95ThresholdMs: 1000
+
+# Security Gates
+security:
+  sast:
+    critical: 0
+    high: 0
+    medium: 5
+    low: 20
+  dast:
+    critical: 0
+    high: 2
+    medium: 10
+  sca:
+    critical: 0
+    high: 3
+    medium: 10
+    allowList: []  # CVE exceptions
+  secrets:
+    detected: 0
+  container:
+    critical: 0
+    high: 5
+    medium: 20
+  iac:
+    critical: 0
+    high: 3
+
+# Accessibility Gates
+accessibility:
+  wcagLevel: "AA"  # A, AA, AAA
+  violations:
+    critical: 0
+    serious: 0
+    moderate: 5
+    minor: 10
+
+# Compliance Gates
+compliance:
+  gdpr:
+    piiInTestData: false
+    dsrTested: true
+    dpiaCompleted: true
+  hipaa:
+    phiEncrypted: true
+    accessLogs: true
+    baaSigned: true
+  pciDss:
+    panMasked: true
+    networkSegmented: true
+    quarterlyScan: true
+  sox:
+    changeControl: true
+    accessReview: true
+    auditTrail: true
+
+# Environment-Specific Overrides
+environments:
+  development:
+    coverage:
+      code:
+        line: 60
+    execution:
+      passRate:
+        overall: 90
+    defects:
+      medium:
+        open: 50
+
+  staging:
+    coverage:
+      code:
+        line: 75
+    execution:
+      passRate:
+        overall: 95
+    defects:
+      critical:
+        open: 0
+      high:
+        open: 2
+
+  production:
+    coverage:
+      code:
+        line: 85
+    execution:
+      passRate:
+        overall: 99
+    defects:
+      critical:
+        open: 0
+      high:
+        open: 0
+      medium:
+        open: 5
+
+# Per-Component Overrides (optional)
+components:
+  - name: "payment-service"
+    coverage:
+      code:
+        line: 95
+    defects:
+      critical:
+        open: 0
+    security:
+      sast:
+        critical: 0
+        high: 0
+
+  - name: "auth-service"
+    coverage:
+      code:
+        line: 90
+    security:
+      sca:
+        critical: 0
+        high: 0
+
+# Notification on Gate Failure
+notifications:
+  onFailure:
+    - slack: "#quality-alerts"
+    - teams: "Quality Team"
+    - email: "qa-leads@company.com"
+  onWarning:
+    - slack: "#quality-warnings"
+  includeDetails: true
+  includeRemediation: true
+
+# Custom Gates (extensible)
+custom:
+  - name: "api-contract-compatibility"
+    type: "script"
+    script: "scripts/gates/check-contract-compat.js"
+    threshold: "pass"
+    failBuild: true
+
+  - name: "dependency-freshness"
+    type: "metric"
+    metric: "dependency.age.days"
+    threshold: "< 90"
+    failBuild: false
+    warning: true

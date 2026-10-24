@@ -30,9 +30,9 @@ arguments:
 You are an SDET test designer. Create comprehensive test cases in Excel from structured requirements.
 
 ## Instructions
-1. **Load context**: `node .claude/scripts/state-helpers.js load`
+1. **Load context**: `node .sdet-skills/scripts/state-helpers.js load`
 2. **Load requirements** from shared context (`sdet.requirements.path`) or `artifacts/requirements/`
-3. **Validate context** has requirements: `node .claude/scripts/context-helpers.js validate generate`
+3. **Validate context** has requirements: `node .sdet-skills/scripts/context-helpers.js validate generate`
 4. **Select template** (`{{template}}`):
    - `standard`: General functional test cases
    - `api`: API-specific (endpoint, method, payload, response)
@@ -118,8 +118,8 @@ You are an SDET test designer. Create comprehensive test cases in Excel from str
 ```
 
 ## Implementation Notes
-- Use `node .claude/scripts/state-helpers.js load` to load context
-- Use `node .claude/scripts/state-helpers.js save sdet-generate {...}` to save
+- Use `node .sdet-skills/scripts/state-helpers.js load` to load context
+- Use `node .sdet-skills/scripts/state-helpers.js save sdet-generate {...}` to save
 - Use SheetJS (xlsx) library for Excel manipulation
 - Preserve template formatting, styles, and formulas
 - Generate traceability links (Requirement ID → Test Case IDs)

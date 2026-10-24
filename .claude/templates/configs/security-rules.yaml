@@ -1,0 +1,595 @@
+# Security Rules Configuration
+# Used by sdet-security, sdet-deploy, sdet-governance
+# Place at: templates/configs/security-rules.yaml
+
+version: "1.0"
+description: "Security testing rules, thresholds, and compliance mappings"
+
+# SAST Rules (Static Application Security Testing)
+sast:
+  enabled: true
+  tools:
+    - name: "semgrep"
+      config: "auto"  # auto, p/security-audit, p/secrets, p/owasp-top-ten
+      rulesets:
+        - "p/security-audit"
+        - "p/secrets"
+        - "p/owasp-top-ten"
+        - "p/cwe-top-25"
+      customRules: "rules/semgrep/custom/"
+      exclude:
+        - "**/node_modules/**"
+        - "**/.git/**"
+        - "**/dist/**"
+        - "**/build/**"
+        - "**/*.test.ts"
+        - "**/*.spec.ts"
+        - "**/mocks/**"
+        - "**/fixtures/**"
+      severityMapping:
+        ERROR: "critical"
+        WARNING: "high"
+        INFO: "medium"
+
+    - name: "codeql"
+      queries:
+        - "security-extended"
+        - "security-and-quality"
+      packs:
+        - "codeql/javascript-queries"
+        - "codeql/typescript-queries"
+        - "codeql/python-queries"
+        - "codeql/java-queries"
+        - "codeql/go-queries"
+      exclude:
+        - "**/node_modules/**"
+        - "**/test/**"
+        - "**/*.test.ts"
+
+    - name: "sonarqube"
+      qualityGate: "Security"
+      rules:
+        - "javascript:S2068"  # Hardcoded credentials
+        - "javascript:S2076"  # Hardcoded cryptographic key
+        - "javascript:S4426"  # Weak crypto algorithm
+        - "javascript:S5131"  # Weak hash algorithm
+        - "javascript:S5144"  # Weak random generator
+        - "javascript:S5167"  # SQL injection
+        - "javascript:S3649"  # Path traversal
+
+  categories:
+    - id: "injection"
+      name: "Injection"
+      cwe: ["CWE-79", "CWE-89", "CWE-564", "CWE-94", "CWE-95", "CWE-96", "CWE-97", "CWE-98", "CWE-99"]
+      owasp: "A03:2021"
+      severity: "critical"
+
+    - id: "broken-auth"
+      name: "Broken Authentication"
+      cwe: ["CWE-287", "CWE-288", "CWE-289", "CWE-290", "CWE-294", "CWE-302", "CWE-304", "CWE-306", "CWE-307", "CWE-308", "CWE-309", "CWE-310", "CWE-311", "CWE-312", "CWE-319", "CWE-320", "CWE-321", "CWE-322", "CWE-323", "CWE-324", "CWE-325", "CWE-326", "CWE-327", "CWE-328", "CWE-329", "CWE-330", "CWE-331", "CWE-332", "CWE-333", "CWE-334", "CWE-335", "CWE-336", "CWE-337", "CWE-338", "CWE-339", "CWE-340", "CWE-341", "CWE-342", "CWE-343", "CWE-344", "CWE-345", "CWE-346", "CWE-347", "CWE-348", "CWE-349", "CWE-350", "CWE-351", "CWE-352", "CWE-353", "CWE-354", "CWE-355", "CWE-356", "CWE-357", "CWE-358", "CWE-359", "CWE-360", "CWE-361", "CWE-362", "CWE-363", "CWE-364", "CWE-365", "CWE-366", "CWE-367", "CWE-368", "CWE-369", "CWE-370", "CWE-371", "CWE-372", "CWE-373", "CWE-374", "CWE-375", "CWE-376", "CWE-377", "CWE-378", "CWE-379", "CWE-380", "CWE-381", "CWE-382", "CWE-383", "CWE-384", "CWE-385", "CWE-386", "CWE-387", "CWE-388", "CWE-389", "CWE-390", "CWE-391", "CWE-392", "CWE-393", "CWE-394", "CWE-395", "CWE-396", "CWE-397", "CWE-398", "CWE-399", "CWE-400"]
+      owasp: "A07:2021"
+      severity: "critical"
+
+    - id: "sensitive-data"
+      name: "Sensitive Data Exposure"
+      cwe: ["CWE-200", "CWE-201", "CWE-209", "CWE-311", "CWE-312", "CWE-313", "CWE-319", "CWE-321", "CWE-322", "CWE-323", "CWE-324", "CWE-325", "CWE-326", "CWE-327", "CWE-328", "CWE-329", "CWE-330", "CWE-331", "CWE-332", "CWE-333", "CWE-334", "CWE-335", "CWE-336", "CWE-337", "CWE-338", "CWE-339", "CWE-340", "CWE-341", "CWE-342", "CWE-343", "CWE-344", "CWE-345", "CWE-346", "CWE-347", "CWE-348", "CWE-349", "CWE-350"]
+      owasp: "A02:2021"
+      severity: "high"
+
+    - id: "xxe"
+      name: "XML External Entities"
+      cwe: ["CWE-611"]
+      owasp: "A05:2021"
+      severity: "high"
+
+    - id: "broken-access"
+      name: "Broken Access Control"
+      cwe: ["CWE-284", "CWE-285", "CWE-359", "CWE-639", "CWE-862", "CWE-863", "CWE-922"]
+      owasp: "A01:2021"
+      severity: "critical"
+
+    - id: "security-misconfig"
+      name: "Security Misconfiguration"
+      cwe: ["CWE-16", "CWE-209", "CWE-210", "CWE-211", "CWE-212", "CWE-213", "CWE-214", "CWE-215", "CWE-216", "CWE-217", "CWE-218", "CWE-219", "CWE-220", "CWE-221", "CWE-222", "CWE-223", "CWE-224", "CWE-225", "CWE-226", "CWE-227", "CWE-228", "CWE-229", "CWE-230", "CWE-231", "CWE-232", "CWE-233", "CWE-234", "CWE-235", "CWE-236", "CWE-237", "CWE-238", "CWE-239", "CWE-240", "CWE-241", "CWE-242", "CWE-243", "CWE-244", "CWE-245", "CWE-246", "CWE-247", "CWE-248", "CWE-249", "CWE-250", "CWE-251", "CWE-252", "CWE-253", "CWE-254", "CWE-255", "CWE-256", "CWE-257", "CWE-258", "CWE-259", "CWE-260", "CWE-261", "CWE-262", "CWE-263", "CWE-264", "CWE-265", "CWE-266", "CWE-267", "CWE-268", "CWE-269", "CWE-270", "CWE-271", "CWE-272", "CWE-273", "CWE-274", "CWE-275", "CWE-276", "CWE-277", "CWE-278", "CWE-279", "CWE-279"]
+      owasp: "A05:2021"
+      severity: "medium"
+
+    - id: "xss"
+      name: "Cross-Site Scripting"
+      cwe: ["CWE-79", "CWE-80", "CWE-81", "CWE-83", "CWE-84", "CWE-85", "CWE-86", "CWE-87", "CWE-88", "CWE-89"]
+      owasp: "A03:2021"
+      severity: "high"
+
+    - id: "insecure-deserialization"
+      name: "Insecure Deserialization"
+      cwe: ["CWE-502"]
+      owasp: "A08:2021"
+      severity: "critical"
+
+    - id: "vulnerable-components"
+      name: "Using Components with Known Vulnerabilities"
+      cwe: ["CWE-1104", "CWE-1035"]
+      owasp: "A06:2021"
+      severity: "high"
+
+    - id: "insufficient-logging"
+      name: "Insufficient Logging & Monitoring"
+      cwe: ["CWE-778"]
+      owasp: "A09:2021"
+      severity: "medium"
+
+  thresholds:
+    critical: 0
+    high: 0
+    medium: 10
+    low: 50
+
+# DAST Rules (Dynamic Application Security Testing)
+dast:
+  enabled: true
+  tools:
+    - name: "zap"
+      mode: "baseline"  # baseline, full, api
+      context: "default"
+      policy: "rules/zap/policy.xml"
+      exclude:
+        - "/health"
+        - "/metrics"
+        - "/actuator/**"
+        - "/static/**"
+      auth:
+        type: "form"
+        loginUrl: "/login"
+        usernameField: "email"
+        passwordField: "password"
+      spider:
+        maxDepth: 5
+        maxChildren: 20
+      activeScan:
+        maxRuleDuration: 300
+        maxScanDuration: 3600
+        threshold: "medium"
+      api:
+        importOpenApi: true
+        openApiUrl: "/v3/api-docs"
+
+    - name: "burp"
+      mode: "community"  # community, pro
+      project: "rules/burp/project.burp"
+      scope:
+        include:
+          - "https://app.example.com/*"
+        exclude:
+          - "https://app.example.com/logout"
+          - "https://app.example.com/health"
+
+  categories:
+    - id: "sql-injection"
+      name: "SQL Injection"
+      owasp: "A03:2021"
+      severity: "critical"
+
+    - id: "xss-reflected"
+      name: "Reflected XSS"
+      owasp: "A03:2021"
+      severity: "high"
+
+    - id: "xss-stored"
+      name: "Stored XSS"
+      owasp: "A03:2021"
+      severity: "critical"
+
+    - id: "xss-dom"
+      name: "DOM-based XSS"
+      owasp: "A03:2021"
+      severity: "high"
+
+    - id: "path-traversal"
+      name: "Path Traversal"
+      owasp: "A01:2021"
+      severity: "high"
+
+    - id: "command-injection"
+      name: "Command Injection"
+      owasp: "A03:2021"
+      severity: "critical"
+
+    - id: "auth-bypass"
+      name: "Authentication Bypass"
+      owasp: "A07:2021"
+      severity: "critical"
+
+    - id: "authorization-bypass"
+      name: "Authorization Bypass"
+      owasp: "A01:2021"
+      severity: "critical"
+
+    - id: "session-fixation"
+      name: "Session Fixation"
+      owasp: "A07:2021"
+      severity: "high"
+
+    - id: "csrf"
+      name: "Cross-Site Request Forgery"
+      owasp: "A01:2021"
+      severity: "medium"
+
+    - id: "open-redirect"
+      name: "Open Redirect"
+      owasp: "A01:2021"
+      severity: "medium"
+
+    - id: "ssrf"
+      name: "Server-Side Request Forgery"
+      owasp: "A10:2021"
+      severity: "high"
+
+    - id: "info-disclosure"
+      name: "Information Disclosure"
+      owasp: "A02:2021"
+      severity: "medium"
+
+  thresholds:
+    critical: 0
+    high: 2
+    medium: 10
+    low: 50
+
+# SCA Rules (Software Composition Analysis)
+sca:
+  enabled: true
+  tools:
+    - name: "trivy"
+      scanTypes:
+        - "vuln"
+        - "secret"
+        - "config"
+        - "license"
+      severity: ["CRITICAL", "HIGH", "MEDIUM"]
+      ignoreUnfixed: true
+      vulnType: "os,library"
+      db:
+        repository: "ghcr.io/aquasecurity/trivy-db:2"
+        skipUpdate: false
+
+    - name: "snyk"
+      testType: "all"  # all, vuln, license, config
+      severityThreshold: "high"
+      monitor: true
+      org: "${SNYK_ORG}"
+
+    - name: "dependabot"
+      ecosystem: "npm"  # npm, maven, gradle, pip, nuget, go, cargo
+      schedule: "daily"
+      openPullRequestsLimit: 10
+      labels: ["security", "dependencies"]
+      allow:
+        - "lodash@4.17.21"  # Known false positive
+
+  policies:
+    - name: "no-critical-vulns"
+      severity: "critical"
+      action: "fail"
+      exceptions: []
+
+    - name: "no-high-vulns-in-prod"
+      severity: "high"
+      action: "fail"
+      environments: ["production", "staging"]
+      exceptions:
+        - "CVE-2023-12345"  # Accepted risk
+
+    - name: "license-compliance"
+      action: "warn"
+      allowedLicenses:
+        - "MIT"
+        - "Apache-2.0"
+        - "BSD-3-Clause"
+        - "BSD-2-Clause"
+        - "ISC"
+        - "CC0-1.0"
+      forbiddenLicenses:
+        - "GPL-3.0"
+        - "AGPL-3.0"
+        - "SSPL-1.0"
+        - "Commons Clause"
+      exceptions:
+        - "internal-tool@1.0.0"
+
+  thresholds:
+    critical: 0
+    high: 0
+    medium: 10
+
+# Secrets Detection
+secrets:
+  enabled: true
+  tools:
+    - name: "trufflehog"
+      config: "rules/trufflehog/config.yaml"
+      verify: true
+      onlyVerified: true
+      fail: true
+      includePaths:
+        - "."
+      excludePaths:
+        - "node_modules"
+        - ".git"
+        - "dist"
+        - "build"
+        - "*.lock"
+
+    - name: "gitleaks"
+      config: "rules/gitleaks/config.toml"
+      verbose: true
+      redact: true
+      fail: true
+
+  patterns:
+    - name: "aws-access-key"
+      regex: "AKIA[0-9A-Z]{16}"
+      entropy: 4.5
+
+    - name: "aws-secret-key"
+      regex: "[A-Za-z0-9/+=]{40}"
+      entropy: 4.5
+
+    - name: "github-token"
+      regex: "gh[pousr]_[A-Za-z0-9_]{36,251}"
+
+    - name: "slack-token"
+      regex: "xox[baprs]-[0-9]{12}-[0-9]{12}-[0-9]{12}-[a-z0-9]{32}"
+
+    - name: "generic-api-key"
+      regex: "[a-zA-Z0-9_-]{20,}"
+      entropy: 4.0
+      keywords: ["api", "key", "token", "secret", "password"]
+
+  thresholds:
+    detected: 0
+
+# Container Security
+container:
+  enabled: true
+  tools:
+    - name: "trivy"
+      scanTypes:
+        - "vuln"
+        - "config"
+        - "secret"
+        - "license"
+      severity: ["CRITICAL", "HIGH"]
+      ignoreUnfixed: true
+      skipFiles:
+        - "Dockerfile.test"
+      skipDirs:
+        - ".git"
+        - "node_modules"
+
+    - name: "grype"
+      config: "rules/grype/config.yaml"
+      failOn: "high"
+      output: "json"
+
+    - name: "syft"
+      output: "spdx-json"
+      catalogers:
+        - "file"
+        - "package"
+
+  baseImages:
+    allowed:
+      - "node:20-alpine"
+      - "node:20-slim"
+      - "python:3.11-slim"
+      - "openjdk:21-jre-slim"
+      - "golang:1.21-alpine"
+      - "nginx:alpine"
+      - "postgres:15-alpine"
+      - "redis:7-alpine"
+    forbidden:
+      - "node:18"
+      - "python:3.10"
+      - "openjdk:11"
+
+  dockerfileRules:
+    - id: "no-root-user"
+      rule: "USER must not be root"
+      severity: "high"
+    - id: "no-latest-tag"
+      rule: "FROM must not use :latest tag"
+      severity: "medium"
+    - id: "healthcheck"
+      rule: "HEALTHCHECK required"
+      severity: "medium"
+    - id: "no-secrets"
+      rule: "No secrets in Dockerfile"
+      severity: "critical"
+
+# IaC Security
+iac:
+  enabled: true
+  tools:
+    - name: "checkov"
+      frameworks:
+        - "terraform"
+        - "cloudformation"
+        - "kubernetes"
+        - "dockerfile"
+        - "serverless"
+        - "bicep"
+        - "arm"
+      skipChecks:
+        - "CKV_AWS_21"  # S3 bucket versioning
+      severity: ["CRITICAL", "HIGH", "MEDIUM"]
+      output: "json"
+
+    - name: "tfsec"
+      exclude:
+        - "aws-s3-bucket-public-read-prohibited"
+      severity: ["CRITICAL", "HIGH", "MEDIUM"]
+
+    - name: "kics"
+      platforms:
+        - "terraform"
+        - "kubernetes"
+        - "docker"
+        - "ansible"
+        - "cloudformation"
+      severity: ["HIGH", "MEDIUM"]
+
+  categories:
+    - id: "encryption-at-rest"
+      name: "Encryption at Rest"
+      severity: "high"
+
+    - id: "encryption-in-transit"
+      name: "Encryption in Transit"
+      severity: "high"
+
+    - id: "public-access"
+      name: "Public Access"
+      severity: "critical"
+
+    - id: "logging"
+      name: "Logging Enabled"
+      severity: "medium"
+
+    - id: "backup"
+      name: "Backup Configured"
+      severity: "medium"
+
+    - id: "iam-least-privilege"
+      name: "IAM Least Privilege"
+      severity: "high"
+
+    - id: "network-segmentation"
+      name: "Network Segmentation"
+      severity: "high"
+
+    - id: "secrets-management"
+      name: "Secrets Management"
+      severity: "critical"
+
+# API Security (for sdet-api-fuzz, sdet-contract)
+apiSecurity:
+  enabled: true
+  openApiValidation:
+    strict: true
+    additionalProperties: false
+
+  authentication:
+    required: true
+    schemes:
+      - "bearer"
+      - "apiKey"
+      - "oauth2"
+    jwt:
+      validateSignature: true
+      validateExpiration: true
+      validateAudience: true
+      validateIssuer: true
+      allowedAlgorithms: ["RS256", "ES256"]
+
+  authorization:
+    rbac: true
+    abac: false
+
+  rateLimiting:
+    enabled: true
+    requestsPerMinute: 1000
+    burst: 100
+
+  inputValidation:
+    maxBodySize: "10mb"
+    maxQueryParams: 50
+    maxHeaderSize: "8kb"
+    sanitize: true
+
+  outputEncoding:
+    json: true
+    html: true
+
+  cors:
+    allowedOrigins: ["https://app.example.com"]
+    allowedMethods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+    allowedHeaders: ["Content-Type", "Authorization"]
+    maxAge: 86400
+
+  securityHeaders:
+    - "X-Content-Type-Options: nosniff"
+    - "X-Frame-Options: DENY"
+    - "X-XSS-Protection: 1; mode=block"
+    - "Strict-Transport-Security: max-age=31536000; includeSubDomains"
+    - "Content-Security-Policy: default-src 'self'"
+    - "Referrer-Policy: strict-origin-when-cross-origin"
+    - "Permissions-Policy: geolocation=(), microphone=()"
+
+# Security Testing in CI/CD
+ciIntegration:
+  prChecks:
+    - "sast"
+    - "secrets"
+    - "sca"
+    - "iac"
+
+  pipelineStages:
+    - name: "security-scan"
+      runsOn: "ubuntu-latest"
+      steps:
+        - "checkout"
+        - "setup-node"
+        - "cache-node-modules"
+        - "install"
+        - "sast-scan"
+        - "secrets-scan"
+        - "sca-scan"
+        - "iac-scan"
+        - "upload-sarif"
+
+  qualityGates:
+    sast:
+      critical: 0
+      high: 0
+    dast:
+      critical: 0
+      high: 2
+    sca:
+      critical: 0
+      high: 0
+    secrets: 0
+    container:
+      critical: 0
+      high: 5
+    iac:
+      critical: 0
+      high: 3
+
+# Reporting
+reporting:
+  formats:
+    - "sarif"
+    - "json"
+    - "html"
+    - "pdf"
+
+  dashboards:
+    - "github-security"
+    - "sonarqube"
+    - "defectdojo"
+
+  notifications:
+    onNewCritical:
+      - slack: "#security-alerts"
+      - email: "security@company.com"
+    onNewHigh:
+      - slack: "#security-warnings"
+    daily:
+      - email: "security-summary@company.com"
+    weekly:
+      - email: "security-trends@company.com"
+
+  retention:
+    sarif: "90d"
+    reports: "365d"
+    metrics: "730d"

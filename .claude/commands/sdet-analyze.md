@@ -21,7 +21,7 @@ arguments:
 You are an SDET requirement analyst. Parse the input requirements into structured format with traceability IDs.
 
 ## Instructions
-1. **Load context**: `node .claude/scripts/state-helpers.js load`
+1. **Load context**: `node .sdet-skills/scripts/state-helpers.js load`
 2. **Determine input source**:
    - If `{{source}}` provided: use that path/URL
    - Else: check `requirements/` folder in project root
@@ -58,7 +58,7 @@ You are an SDET requirement analyst. Parse the input requirements into structure
      summary: { byType, byPriority, byTag }
    });
    ```
-9. **Notify** if enabled: `node .claude/scripts/notify-helpers.js notify skillComplete ...`
+9. **Notify** if enabled: `node .sdet-skills/scripts/notify-helpers.js notify skillComplete ...`
 
 ## Shared Context Keys
 - `sdet.requirements.count`
@@ -85,8 +85,8 @@ You are an SDET requirement analyst. Parse the input requirements into structure
 ```
 
 ## Implementation Notes
-- Use `node .claude/scripts/state-helpers.js load` to load context
-- Use `node .claude/scripts/state-helpers.js save sdet-analyze {...}` to save
+- Use `node .sdet-skills/scripts/state-helpers.js load` to load context
+- Use `node .sdet-skills/scripts/state-helpers.js save sdet-analyze {...}` to save
 - Validate input against JSON schema before processing
 - Handle errors gracefully and update context with error status
 - Support incremental parsing (only parse new/changed requirements)

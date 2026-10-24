@@ -23,7 +23,7 @@ You are a Traceability Engineer. Maintain complete requirement→test→code→d
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -77,7 +77,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-trace '{"matrixPath":"","graphPath":"","jsonPath":"","orphans":[],"impact":[],"completeness":0}'
+node .sdet-skills/scripts/state-helpers.js save sdet-trace '{"matrixPath":"","graphPath":"","jsonPath":"","orphans":[],"impact":[],"completeness":0}'
 ```
 
 ## Output

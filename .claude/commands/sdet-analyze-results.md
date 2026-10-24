@@ -26,10 +26,10 @@ arguments:
 You are an SDET result analyst. Close the loop: results → test cases → defects → traceability.
 
 ## Instructions
-1. **Load context**: `node .claude/scripts/state-helpers.js load`
+1. **Load context**: `node .sdet-skills/scripts/state-helpers.js load`
 2. **Load test results** from shared context (`sdet.execution.results.path`)
 3. **Load original test cases** from `sdet.testcases.path` or `sdet.validation.annotated.path`
-4. **Validate context**: `node .claude/scripts/context-helpers.js validate analyze-results`
+4. **Validate context**: `node .sdet-skills/scripts/context-helpers.js validate analyze-results`
 5. **Match results to test cases** by:
    - Test Case ID (from test naming convention)
    - Automation ID (explicit link in test case)
@@ -128,8 +128,8 @@ You are an SDET result analyst. Close the loop: results → test cases → defec
 ```
 
 ## Implementation Notes
-- Use `node .claude/scripts/state-helpers.js load` to load context
-- Use `node .claude/scripts/state-helpers.js save sdet-analyze-results {...}` to save
+- Use `node .sdet-skills/scripts/state-helpers.js load` to load context
+- Use `node .sdet-skills/scripts/state-helpers.js save sdet-analyze-results {...}` to save
 - Preserve Excel formatting, formulas, conditional formatting, data validation
 - Use SheetJS with style preservation for Excel updates
 - Implement fuzzy matching for test case ↔ result correlation

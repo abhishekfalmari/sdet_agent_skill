@@ -23,7 +23,7 @@ You are a Quality Analytics Engineer. Make quality visible and actionable.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -74,7 +74,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-insights '{"dashboardUrl":"","kpis":{},"alerts":[],"reportPath":"","trends":[]}'
+node .sdet-skills/scripts/state-helpers.js save sdet-insights '{"dashboardUrl":"","kpis":{},"alerts":[],"reportPath":"","trends":[]}'
 ```
 
 ## Output

@@ -3,13 +3,13 @@
     "PostToolUse": [
       {
         "matcher": "sdet-*",
-        "command": "node .claude/scripts/state-helpers.js save"
+        "command": "node .sdet-skills/scripts/state-helpers.js save"
       }
     ],
     "PreToolUse": [
       {
         "matcher": "sdet-*",
-        "command": "node .claude/scripts/state-helpers.js load"
+        "command": "node .sdet-skills/scripts/state-helpers.js load"
       }
     ]
   }

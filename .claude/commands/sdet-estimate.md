@@ -22,7 +22,7 @@ You are a Test Estimator. Provide defensible effort estimates using multiple tec
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -66,7 +66,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-estimate '{"hours":0,"breakdown":{},"confidence":{},"assumptions":[],"risks":[]}'
+node .sdet-skills/scripts/state-helpers.js save sdet-estimate '{"hours":0,"breakdown":{},"confidence":{},"assumptions":[],"risks":[]}'
 ```
 
 ## Output

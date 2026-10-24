@@ -38,9 +38,9 @@ arguments:
 You are an SDET test executor. Run tests reliably with full observability and artifact collection.
 
 ## Instructions
-1. **Load context**: `node .claude/scripts/state-helpers.js load`
+1. **Load context**: `node .sdet-skills/scripts/state-helpers.js load`
 2. **Load automation files** from shared context (`sdet.automation.files[]`)
-3. **Validate context** has automation: `node .claude/scripts/context-helpers.js validate execute`
+3. **Validate context** has automation: `node .sdet-skills/scripts/context-helpers.js validate execute`
 4. **Discover test files** by type:
    - UI: `tests/ui/**/*.spec.ts`, `tests/ui/**/*.test.ts`
    - API: `tests/api/**/*.spec.ts`, `tests/api/**/*.test.ts`
@@ -178,8 +178,8 @@ npx @pact-foundation/pact-cli verify --provider-base-url={{url}} --pact-urls={{p
 ```
 
 ## Implementation Notes
-- Use `node .claude/scripts/state-helpers.js load` to load context
-- Use `node .claude/scripts/state-helpers.js save sdet-execute {...}` to save
+- Use `node .sdet-skills/scripts/state-helpers.js load` to load context
+- Use `node .sdet-skills/scripts/state-helpers.js save sdet-execute {...}` to save
 - Support dry-run mode for validation
 - Implement graceful shutdown on interruption
 - Collect metrics: CPU, memory, network per test run

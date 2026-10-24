@@ -3,13 +3,13 @@
     "PostToolUse": [
       {
         "matcher": "sdet-orchestrate",
-        "command": "node .claude/scripts/checkpoint-helpers.js save"
+        "command": "node .sdet-skills/scripts/checkpoint-helpers.js save"
       }
     ],
     "PreToolUse": [
       {
         "matcher": "sdet-orchestrate",
-        "command": "node .claude/scripts/checkpoint-helpers.js load"
+        "command": "node .sdet-skills/scripts/checkpoint-helpers.js load"
       }
     ]
   }

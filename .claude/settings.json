@@ -1,142 +1,30 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node .claude/scripts/*)",
-      "Bash(npx *)",
-      "Bash(npm *)",
-      "Bash(pnpm *)",
-      "Bash(yarn *)",
-      "Bash(git *)",
-      "Bash(gh *)",
-      "Bash(glab *)",
-      "Bash(curl *)",
-      "Bash(wget *)",
-      "Bash(jq *)",
-      "Bash(unzip *)",
-      "Bash(tar *)",
-      "Bash(mkdir *)",
-      "Bash(rm *)",
-      "Bash(cp *)",
-      "Bash(mv *)",
-      "Bash(ls *)",
-      "Bash(find *)",
-      "Bash(cat *)",
-      "Bash(head *)",
-      "Bash(tail *)",
-      "Bash(grep *)",
-      "Bash(sed *)",
-      "Bash(awk *)",
-      "Bash(python3 *)",
-      "Bash(python *)",
-      "Bash(node *)",
-      "Bash(npx playwright *)",
-      "Bash(npx cypress *)",
-      "Bash(npx k6 *)",
-      "Bash(npx semgrep *)",
-      "Bash(npx zap *)",
-      "Bash(npx trivy *)",
-      "Bash(npx axe *)",
-      "Bash(npx pa11y *)",
-      "Bash(npx allure *)",
-      "Bash(docker *)",
-      "Bash(kubectl *)",
-      "Bash(helm *)",
-      "Bash(terraform *)",
-      "Bash(az *)",
-      "Bash(gcloud *)",
-      "Bash(aws *)",
-      "Read(*)",
-      "Write(*)",
-      "Edit(*)",
-      "Glob(*)",
-      "Grep(*)",
-      "Task(*)",
-      "WebFetch(*)",
-      "WebSearch(*)"
-    ],
-    "deny": [
-      "Bash(sudo *)",
-      "Bash(rm -rf /*)",
-      "Bash(dd *)",
-      "Bash(mkfs *)",
-      "Bash(fdisk *)",
-      "Bash(chmod 777 *)",
-      "Bash(chown root:*)",
-      "Bash(passwd *)",
-      "Bash(useradd *)",
-      "Bash(userdel *)",
-      "Bash(systemctl *)",
-      "Bash(service *)",
-      "Bash(mount *)",
-      "Bash(umount *)",
-      "Bash(iptables *)",
-      "Bash(ufw *)"
+      "Bash(npx sdet-*)",
+      "Bash(node .sdet-skills/scripts/*)",
+      "Read(.claude/context/**)",
+      "Write(.claude/context/**)",
+      "Write(artifacts/**)",
+      "Read(artifacts/**)",
+      "Glob(**)",
+      "Grep(**)"
     ]
   },
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "sdet-*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/scripts/state-helpers.js save"
-          }
-        ]
-      },
-      {
-        "matcher": "sdet-*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/scripts/context-helpers.js export"
-          }
-        ]
-      },
-      {
-        "matcher": "sdet-orchestrate",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/scripts/checkpoint-helpers.js save"
-          }
-        ]
-      },
-      {
-        "matcher": "sdet-*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/scripts/notify-helpers.js notify"
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
-      {
-        "matcher": "sdet-*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/scripts/state-helpers.js load"
-          }
-        ]
-      },
-      {
-        "matcher": "sdet-orchestrate",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/scripts/checkpoint-helpers.js load"
-          }
-        ]
-      }
+      { "matcher": "sdet-*", "command": "node .sdet-skills/scripts/state-helpers.js load" }
+    ],
+    "PostToolUse": [
+      { "matcher": "sdet-*", "command": "node .sdet-skills/scripts/state-helpers.js save" },
+      { "matcher": "sdet-*", "command": "node .sdet-skills/scripts/context-helpers.js export" }
     ]
   },
   "skills": {
     "autoLoad": true,
     "paths": [
-      ".claude/commands"
+      ".claude/commands",
+      ".sdet-skills/.claude/commands"
     ]
   }
 }

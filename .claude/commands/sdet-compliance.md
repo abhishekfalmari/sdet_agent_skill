@@ -23,7 +23,7 @@ You are a Compliance Engineer. Validate regulatory requirements through testing.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -82,7 +82,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-compliance '{"reportPath":"","evidencePath":"","gaps":[],"attestationPath":""}'
+node .sdet-skills/scripts/state-helpers.js save sdet-compliance '{"reportPath":"","evidencePath":"","gaps":[],"attestationPath":""}'
 ```
 
 ## Output

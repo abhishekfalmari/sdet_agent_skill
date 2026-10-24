@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2007/schema#",
+  "title": "SDET Pipeline Started",
+  "type": "object",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "🚀 SDET Pipeline Started",
+        "emoji": true
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Workflow:*\n{{workflow}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Run ID:*\n{{runId}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Project:*\n{{projectName}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Branch:*\n{{branch}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Trigger:*\n{{trigger}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Started:*\n{{startedAt}}"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Stages:* {{#each stages}}`{{this}}` {{/each}}"
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Pipeline",
+            "emoji": true
+          },
+          "url": "{{pipelineUrl}}",
+          "style": "primary"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Context",
+            "emoji": true
+          },
+          "url": "{{contextUrl}}"
+        }
+      ]
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "SDET Skills • {{timestamp}}"
+        }
+      ]
+    }
+  ]
+}

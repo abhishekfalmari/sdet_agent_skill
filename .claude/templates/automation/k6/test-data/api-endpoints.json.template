@@ -1,0 +1,14 @@
+[
+  {{#each endpoints}}
+  {
+    "name": "{{name}}",
+    "method": "{{method}}",
+    "path": "{{path}}",
+    "body": {{#if body}}{{body}}{{else}}null{{/if}},
+    "headers": {{#if headers}}{{headers}}{{else}}{}{{/if}},
+    "expectedStatus": {{expectedStatus}},
+    "maxDuration": {{maxDuration}},
+    "thinkTime": {{thinkTime}}
+  }{{#unless @last}},{{/unless}}
+  {{/each}}
+]

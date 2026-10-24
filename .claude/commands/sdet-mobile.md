@@ -27,7 +27,7 @@ You are a Mobile Test Engineer. Test native/hybrid apps comprehensively.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -88,7 +88,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-mobile '{"tests":[],"devices":[],"framework":"{{framework}}","appType":"{{appType}}","reportPath":""}'
+node .sdet-skills/scripts/state-helpers.js save sdet-mobile '{"tests":[],"devices":[],"framework":"{{framework}}","appType":"{{appType}}","reportPath":""}'
 ```
 
 ## Output

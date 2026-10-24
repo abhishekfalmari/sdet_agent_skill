@@ -27,7 +27,7 @@ You are a Test Data Engineer. Provide right data at right time with referential 
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -78,7 +78,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-data '{"paths":[],"schemas":[],"version":"1.0.0","strategy":"{{strategy}}","loadingScripts":[],"dictionaryPath":""}'
+node .sdet-skills/scripts/state-helpers.js save sdet-data '{"paths":[],"schemas":[],"version":"1.0.0","strategy":"{{strategy}}","loadingScripts":[],"dictionaryPath":""}'
 ```
 
 ## Output

@@ -1,0 +1,136 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.5",
+  "theme": "default",
+  "body": [
+    {
+      "type": "Container",
+      "style": "{{#if success}}good{{else}}attention{{/if}}",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "{{#if success}}✅ Pipeline Completed{{else}}❌ Pipeline Failed{{/if}}",
+          "weight": "Bolder",
+          "size": "Large",
+          "color": "{{#if success}}Good{{else}}Attention{{/if}}"
+        },
+        {
+          "type": "TextBlock",
+          "text": "{{workflow}} • Run: {{runId}}",
+          "spacing": "None",
+          "isSubtle": true
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "items": [
+        {
+          "type": "FactSet",
+          "facts": [
+            { "title": "Project:", "value": "{{projectName}}" },
+            { "title": "Branch:", "value": "{{branch}}" },
+            { "title": "Duration:", "value": "{{duration}}" },
+            { "title": "Completed:", "value": "{{completedAt}}" },
+            { "title": "Status:", "value": "{{#if success}}Success{{else}}Failed{{/if}}" }
+          ]
+        }
+      ]
+    },
+    {{#if testResults}}
+    {
+      "type": "Container",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "Test Results",
+          "weight": "Bolder",
+          "size": "Medium"
+        },
+        {
+          "type": "FactSet",
+          "facts": [
+            { "title": "Passed:", "value": "{{testResults.passed}}" },
+            { "title": "Failed:", "value": "{{testResults.failed}}" },
+            { "title": "Skipped:", "value": "{{testResults.skipped}}" },
+            { "title": "Flaky:", "value": "{{testResults.flaky}}" },
+            { "title": "Pass Rate:", "value": "{{testResults.passRate}}%" }
+          ]
+        }
+      ]
+    },
+    {{/if}}
+    {{#if qualityGates}}
+    {
+      "type": "Container",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "Quality Gates",
+          "weight": "Bolder",
+          "size": "Medium"
+        },
+        {
+          "type": "FactSet",
+          "facts": [
+            {{#each qualityGates}}
+            { "title": "{{name}}:", "value": "{{#if passed}}✅{{else}}❌{{/if}} {{actual}}/{{threshold}}" }
+            {{/each}}
+          ]
+        }
+      ]
+    },
+    {{/if}}
+    {{#if defects}}
+    {
+      "type": "Container",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "Defects Created",
+          "weight": "Bolder",
+          "size": "Medium"
+        },
+        {
+          "type": "FactSet",
+          "facts": [
+            { "title": "Critical:", "value": "{{defects.critical}}" },
+            { "title": "High:", "value": "{{defects.high}}" },
+            { "title": "Medium:", "value": "{{defects.medium}}" },
+            { "title": "Low:", "value": "{{defects.low}}" }
+          ]
+        }
+      ]
+    },
+    {{/if}}
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.OpenUrl",
+          "title": "View Report",
+          "url": "{{reportUrl}}",
+          "style": "positive"
+        },
+        {
+          "type": "Action.OpenUrl",
+          "title": "View Artifacts",
+          "url": "{{artifactsUrl}}"
+        },
+        {{#if failed}}
+        {
+          "type": "Action.OpenUrl",
+          "title": "View Failures",
+          "url": "{{failuresUrl}}",
+          "style": "destructive"
+        }
+        {{/if}}
+      ]
+    }
+  ],
+  "metadata": {
+    "source": "SDET Skills",
+    "timestamp": "{{timestamp}}"
+  }
+}

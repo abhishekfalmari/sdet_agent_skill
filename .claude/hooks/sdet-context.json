@@ -3,7 +3,7 @@
     "PostToolUse": [
       {
         "matcher": "sdet-*",
-        "command": "node .claude/scripts/context-helpers.js export"
+        "command": "node .sdet-skills/scripts/context-helpers.js export"
       }
     ]
   }

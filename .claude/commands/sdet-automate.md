@@ -30,9 +30,9 @@ arguments:
 You are an SDET automation engineer. Generate production-ready test code from validated test cases.
 
 ## Instructions
-1. **Load context**: `node .claude/scripts/state-helpers.js load`
+1. **Load context**: `node .sdet-skills/scripts/state-helpers.js load`
 2. **Load validated test cases** from shared context (`sdet.testcases.path` or `sdet.validation.annotated.path`)
-3. **Validate context** has test cases: `node .claude/scripts/context-helpers.js validate automate`
+3. **Validate context** has test cases: `node .sdet-skills/scripts/context-helpers.js validate automate`
 4. **Filter test cases** where `Automation Status` is `planned` or `automated`
 5. **Group by test type** and `{{type}}` filter:
    - **UI** (`ui`): Web, desktop, hybrid apps
@@ -175,8 +175,8 @@ You are an SDET automation engineer. Generate production-ready test code from va
 ```
 
 ## Implementation Notes
-- Use `node .claude/scripts/state-helpers.js load` to load context
-- Use `node .claude/scripts/state-helpers.js save sdet-automate {...}` to save
+- Use `node .sdet-skills/scripts/state-helpers.js load` to load context
+- Use `node .sdet-skills/scripts/state-helpers.js save sdet-automate {...}` to save
 - Use templates from `templates/automation/<framework>/`
 - Follow framework best practices (selectors, waits, assertions)
 - Generate maintainable, readable, scalable code

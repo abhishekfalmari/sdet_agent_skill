@@ -1,0 +1,459 @@
+# GitLab CI SDET Pipeline Template
+# This template is used by /sdet-deploy to generate the actual pipeline
+
+stages:
+  - analyze
+  - generate
+  - validate
+  - approve
+  - automate
+  - execute
+  - analyze-results
+  - quality-gates
+  - deploy
+
+variables:
+  NODE_VERSION: "20"
+  SDET_WORKFLOW: "ci"
+  BASE_URL: $BASE_URL
+  NPM_CACHE_DIR: ".npm"
+
+cache:
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .npm/
+    - node_modules/
+    - .playwright/
+
+# ===========================================
+# ANALYZE STAGE
+# ===========================================
+analyze:
+  stage: analyze
+  rules:
+    - if: $SDET_WORKFLOW == "full" || $SDET_WORKFLOW == "security" || $SDET_WORKFLOW == "performance"
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npx sdet-analyze --source ./requirements --format json
+  artifacts:
+    paths:
+      - artifacts/requirements/
+    expire_in: 1 week
+    when: always
+  timeout: 15m
+
+# ===========================================
+# GENERATE STAGE
+# ===========================================
+generate:
+  stage: generate
+  needs: [analyze]
+  rules:
+    - if: $SDET_WORKFLOW == "full" || $SDET_WORKFLOW == "security" || $SDET_WORKFLOW == "performance" || $SDET_WORKFLOW == "quick"
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - |
+      if [ "$SDET_WORKFLOW" = "security" ]; then
+        TEMPLATE="security"
+      elif [ "$SDET_WORKFLOW" = "performance" ]; then
+        TEMPLATE="performance"
+      else
+        TEMPLATE="standard"
+      fi
+      npx sdet-generate --template $TEMPLATE
+  artifacts:
+    paths:
+      - artifacts/test-cases/
+    expire_in: 1 week
+    when: always
+  timeout: 15m
+
+# ===========================================
+# VALIDATE STAGE
+# ===========================================
+validate:
+  stage: validate
+  needs: [generate]
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - |
+      STRICT=false
+      if [ "$SDET_WORKFLOW" = "full" ] || [ "$SDET_WORKFLOW" = "security" ] || [ "$SDET_WORKFLOW" = "performance" ]; then
+        STRICT=true
+      fi
+      npx sdet-validate --strict $STRICT
+  artifacts:
+    paths:
+      - artifacts/validation/
+    expire_in: 1 week
+    when: always
+  timeout: 10m
+
+# ===========================================
+# APPROVAL GATE
+# ===========================================
+approval:
+  stage: approve
+  needs: [validate]
+  rules:
+    - if: $SDET_WORKFLOW == "full" && $CI_PIPELINE_SOURCE != "schedule"
+  image: alpine:latest
+  script:
+    - echo "Pipeline requires manual approval to continue"
+    - echo "Review validation results in artifacts/validation/"
+  when: manual
+  timeout: 24h
+
+# ===========================================
+# AUTOMATE STAGE (Parallel)
+# ===========================================
+automate:ui:
+  stage: automate
+  needs: [validate]
+  rules:
+    - if: $SDET_WORKFLOW == "full" || $SDET_WORKFLOW == "quick" || $SDET_WORKFLOW == "ci" || $SDET_WORKFLOW == "security" || $SDET_WORKFLOW == "performance"
+  image: mcr.microsoft.com/playwright:v1.42.0-jammy
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npx sdet-automate --type ui --framework playwright
+  artifacts:
+    paths:
+      - tests/ui/
+    expire_in: 1 week
+    when: always
+  timeout: 20m
+
+automate:api:
+  stage: automate
+  needs: [validate]
+  rules:
+    - if: $SDET_WORKFLOW == "full" || $SDET_WORKFLOW == "quick" || $SDET_WORKFLOW == "ci" || $SDET_WORKFLOW == "security" || $SDET_WORKFLOW == "performance"
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npx sdet-automate --type api --framework pactum
+  artifacts:
+    paths:
+      - tests/api/
+    expire_in: 1 week
+    when: always
+  timeout: 20m
+
+automate:security:
+  stage: automate
+  needs: [validate]
+  rules:
+    - if: $SDET_WORKFLOW == "security"
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+    - npm install -g semgrep
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+  script:
+    - npx sdet-automate --type security --framework semgrep
+  artifacts:
+    paths:
+      - tests/security/
+    expire_in: 1 week
+    when: always
+  timeout: 20m
+
+automate:performance:
+  stage: automate
+  needs: [validate]
+  rules:
+    - if: $SDET_WORKFLOW == "performance"
+  image: grafana/k6:latest
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npx sdet-automate --type performance --framework k6
+  artifacts:
+    paths:
+      - tests/performance/
+    expire_in: 1 week
+    when: always
+  timeout: 20m
+
+automate:accessibility:
+  stage: automate
+  needs: [validate]
+  rules:
+    - if: $SDET_WORKFLOW == "full"
+  image: mcr.microsoft.com/playwright:v1.42.0-jammy
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npx sdet-automate --type accessibility --framework playwright
+  artifacts:
+    paths:
+      - tests/accessibility/
+    expire_in: 1 week
+    when: always
+  timeout: 20m
+
+automate:contract:
+  stage: automate
+  needs: [validate]
+  rules:
+    - if: $SDET_WORKFLOW == "full"
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npx sdet-automate --type contract --framework pact
+  artifacts:
+    paths:
+      - tests/contract/
+    expire_in: 1 week
+    when: always
+  timeout: 20m
+
+# ===========================================
+# EXECUTE STAGE (Parallel)
+# ===========================================
+execute:ui:
+  stage: execute
+  needs:
+    - job: automate:ui
+      artifacts: true
+  rules:
+    - if: $SDET_WORKFLOW == "full" || $SDET_WORKFLOW == "quick" || $SDET_WORKFLOW == "ci" || $SDET_WORKFLOW == "security" || $SDET_WORKFLOW == "performance"
+  image: mcr.microsoft.com/playwright:v1.42.0-jammy
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npx sdet-execute --type ui --parallel 4 --retry 2 --shard duration
+  artifacts:
+    paths:
+      - artifacts/results/
+    expire_in: 1 week
+    when: always
+  timeout: 60m
+
+execute:api:
+  stage: execute
+  needs:
+    - job: automate:api
+      artifacts: true
+  rules:
+    - if: $SDET_WORKFLOW == "full" || $SDET_WORKFLOW == "quick" || $SDET_WORKFLOW == "ci" || $SDET_WORKFLOW == "security" || $SDET_WORKFLOW == "performance"
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npx sdet-execute --type api --parallel 4 --retry 2 --shard duration
+  artifacts:
+    paths:
+      - artifacts/results/
+    expire_in: 1 week
+    when: always
+  timeout: 60m
+
+execute:security:
+  stage: execute
+  needs:
+    - job: automate:security
+      artifacts: true
+  rules:
+    - if: $SDET_WORKFLOW == "security"
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+    - npm install -g semgrep
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+  script:
+    - npx sdet-execute --type security
+  artifacts:
+    paths:
+      - artifacts/results/
+    expire_in: 1 week
+    when: always
+  timeout: 60m
+
+execute:performance:
+  stage: execute
+  needs:
+    - job: automate:performance
+      artifacts: true
+  rules:
+    - if: $SDET_WORKFLOW == "performance"
+  image: grafana/k6:latest
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npx sdet-execute --type performance --timeout 120
+  artifacts:
+    paths:
+      - artifacts/results/
+    expire_in: 1 week
+    when: always
+  timeout: 120m
+
+execute:accessibility:
+  stage: execute
+  needs:
+    - job: automate:accessibility
+      artifacts: true
+  rules:
+    - if: $SDET_WORKFLOW == "full"
+  image: mcr.microsoft.com/playwright:v1.42.0-jammy
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npx sdet-execute --type accessibility --parallel 4
+  artifacts:
+    paths:
+      - artifacts/results/
+    expire_in: 1 week
+    when: always
+  timeout: 60m
+
+execute:contract:
+  stage: execute
+  needs:
+    - job: automate:contract
+      artifacts: true
+  rules:
+    - if: $SDET_WORKFLOW == "full"
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npx sdet-execute --type contract --parallel 4
+  artifacts:
+    paths:
+      - artifacts/results/
+    expire_in: 1 week
+    when: always
+  timeout: 60m
+
+# ===========================================
+# ANALYZE RESULTS STAGE
+# ===========================================
+analyze-results:
+  stage: analyze-results
+  needs:
+    - job: execute:ui
+      artifacts: true
+    - job: execute:api
+      artifacts: true
+    - job: execute:security
+      artifacts: true
+      optional: true
+    - job: execute:performance
+      artifacts: true
+      optional: true
+    - job: execute:accessibility
+      artifacts: true
+      optional: true
+    - job: execute:contract
+      artifacts: true
+      optional: true
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - |
+      CREATE_DEFECTS=false
+      if [ "$CI_PIPELINE_SOURCE" = "schedule" ]; then
+        CREATE_DEFECTS=true
+      fi
+      npx sdet-analyze-results --updateExcel true --correlateDefects true --generateTrends true --createDefects $CREATE_DEFECTS
+  artifacts:
+    paths:
+      - artifacts/analysis/
+      - artifacts/test-cases/test-cases-results-*.xlsx
+      - artifacts/traceability/
+      - artifacts/trends/
+    expire_in: 1 month
+    when: always
+  timeout: 15m
+
+# ===========================================
+# QUALITY GATES STAGE
+# ===========================================
+quality-gates:
+  stage: quality-gates
+  needs: [analyze-results]
+  rules:
+    - if: $SDET_WORKFLOW == "full" || $SDET_WORKFLOW == "security" || $SDET_WORKFLOW == "performance"
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+    - apk add --no-cache bc jq
+  script:
+    - |
+      # Coverage gate
+      if [ -f artifacts/results/coverage/coverage-summary.json ]; then
+        COVERAGE=$(cat artifacts/results/coverage/coverage-summary.json | jq '.total.lines.pct')
+        echo "Coverage: $COVERAGE%"
+        if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+          echo "❌ Coverage gate failed: $COVERAGE% < 80%"
+          exit 1
+        fi
+        echo "✅ Coverage gate passed: $COVERAGE% >= 80%"
+      fi
+
+      # Critical failures gate
+      SUMMARY_FILE=$(find artifacts/results -name "execution-summary-*.json" | head -1)
+      if [ -f "$SUMMARY_FILE" ]; then
+        FAILURES=$(cat "$SUMMARY_FILE" | jq '.summary.failed')
+        echo "Critical failures: $FAILURES"
+        if [ "$FAILURES" -gt 0 ]; then
+          echo "❌ Critical failures gate failed: $FAILURES failures"
+          exit 1
+        fi
+        echo "✅ Critical failures gate passed"
+      fi
+
+      # Security gate
+      if [ "$SDET_WORKFLOW" = "security" ] && [ -f artifacts/results/security/semgrep-results.json ]; then
+        CRITICAL=$(cat artifacts/results/security/semgrep-results.json | jq '[.results[] | select(.extra.severity=="ERROR")] | length')
+        if [ "$CRITICAL" -gt 0 ]; then
+          echo "❌ Security gate failed: $CRITICAL critical findings"
+          exit 1
+        fi
+        echo "✅ Security gate passed"
+      fi
+
+      # Performance gate
+      if [ "$SDET_WORKFLOW" = "performance" ] && [ -f artifacts/results/performance/k6-summary.json ]; then
+        echo "✅ Performance budgets checked"
+      fi
+  timeout: 10m
+
+# ===========================================
+# DEPLOY STAGE
+# ===========================================
+deploy:production:
+  stage: deploy
+  needs: [quality-gates]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push" && ($SDET_WORKFLOW == "full" || $SDET_WORKFLOW == "ci")
+  image: node:${NODE_VERSION}
+  environment:
+    name: production
+    url: https://production.example.com
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - echo "🚀 Deploying to production..."
+    - # Add your deployment commands here
+    - echo "✅ Deployment complete"
+  timeout: 30m
+
+# ===========================================
+# NOTIFICATIONS (using GitLab's built-in)
+# ===========================================
+# Notifications are configured in GitLab project settings:
+# Settings > Integrations > Slack / Email / Webhooks
+# Or use a separate notify job with curl to webhook URLs

@@ -26,7 +26,7 @@ You are an Exploratory Tester. Structure ad-hoc testing for maximum discovery.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -73,7 +73,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-explore '{"sessions":[],"bugs":[],"coverage":0,"nextCharters":[]}'
+node .sdet-skills/scripts/state-helpers.js save sdet-explore '{"sessions":[],"bugs":[],"coverage":0,"nextCharters":[]}'
 ```
 
 ## Output

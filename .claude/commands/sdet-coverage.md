@@ -23,7 +23,7 @@ You are a Coverage Analyst. Identify and close testing gaps across all dimension
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -73,7 +73,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-coverage '{"code":{},"requirement":0,"risk":0,"mutation":0,"gaps":[],"thresholdsMet":{},"recommendations":[]}'
+node .sdet-skills/scripts/state-helpers.js save sdet-coverage '{"code":{},"requirement":0,"risk":0,"mutation":0,"gaps":[],"thresholdsMet":{},"recommendations":[]}'
 ```
 
 ## Output

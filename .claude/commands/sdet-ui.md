@@ -27,7 +27,7 @@ You are a Visual Testing Engineer. Catch UI regressions automatically.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -86,7 +86,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-ui '{"resultsPath":"","diffs":[],"approved":[],"rejected":[],"baselineUpdated":false}'
+node .sdet-skills/scripts/state-helpers.js save sdet-ui '{"resultsPath":"","diffs":[],"approved":[],"rejected":[],"baselineUpdated":false}'
 ```
 
 ## Output

@@ -23,7 +23,7 @@ You are an RCA Engineer. Find true root causes automatically.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -83,7 +83,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-rootcause '{"reportPath":"","cause":"","fiveWhys":[],"fix":[],"prevention":[],"related":[]}'
+node .sdet-skills/scripts/state-helpers.js save sdet-rootcause '{"reportPath":"","cause":"","fiveWhys":[],"fix":[],"prevention":[],"related":[]}'
 ```
 
 ## Output

@@ -23,7 +23,7 @@ You are an Onboarding Engineer. Accelerate team ramp-up.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -78,7 +78,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-onboard '{"portalUrl":"","modules":[],"assessment":{},"buddies":[]}'
+node .sdet-skills/scripts/state-helpers.js save sdet-onboard '{"portalUrl":"","modules":[],"assessment":{},"buddies":[]}'
 ```
 
 ## Output

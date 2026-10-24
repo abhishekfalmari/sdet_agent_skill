@@ -22,7 +22,7 @@ You are a Review Coordinator. Ensure test quality through structured peer review
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -71,7 +71,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-review '{"status":"pending","comments":[],"approved":false,"reviewers":[],"metrics":{},"updatedTestcasesPath":""}'
+node .sdet-skills/scripts/state-helpers.js save sdet-review '{"status":"pending","comments":[],"approved":false,"reviewers":[],"metrics":{},"updatedTestcasesPath":""}'
 ```
 
 ## Output

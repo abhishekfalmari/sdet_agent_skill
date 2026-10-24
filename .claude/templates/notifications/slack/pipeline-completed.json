@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2007/schema#",
+  "title": "SDET Pipeline Completed",
+  "type": "object",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "{{#if success}}✅{{else}}❌{{/if}} SDET Pipeline {{#if success}}Completed{{else}}Failed{{/if}}",
+        "emoji": true
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Workflow:*\n{{workflow}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Run ID:*\n{{runId}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Status:*\n{{#if success}}:white_check_mark: Success{{else}}:x: Failed{{/if}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Duration:*\n{{duration}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Project:*\n{{projectName}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Branch:*\n{{branch}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Completed:*\n{{completedAt}}"
+        }
+      ]
+    },
+    {{#if summary}}
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Summary:*\n{{summary}}"
+      }
+    },
+    {{/if}}
+    {{#if testResults}}
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Tests:*\nPassed: {{testResults.passed}} | Failed: {{testResults.failed}} | Skipped: {{testResults.skipped}} | Flaky: {{testResults.flaky}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Pass Rate:*\n{{testResults.passRate}}%"
+        }
+      ]
+    },
+    {{/if}}
+    {{#if qualityGates}}
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Quality Gates:*\n{{#each qualityGates}}{{#if passed}}:white_check_mark:{{else}}:x:{{/if}} {{name}} ({{actual}}/{{threshold}}){{/each}}"
+      }
+    },
+    {{/if}}
+    {{#if defects}}
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Defects Created:*\nCritical: {{defects.critical}} | High: {{defects.high}} | Medium: {{defects.medium}} | Low: {{defects.low}}"
+        }
+      ]
+    },
+    {{/if}}
+    {{#if artifacts}}
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Artifacts:*\n{{#each artifacts}}• <{{url}}|{{name}}>{{/each}}"
+      }
+    },
+    {{/if}}
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Report",
+            "emoji": true
+          },
+          "url": "{{reportUrl}}",
+          "style": "primary"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Artifacts",
+            "emoji": true
+          },
+          "url": "{{artifactsUrl}}"
+        },
+        {{#if failed}}
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Failures",
+            "emoji": true
+          },
+          "url": "{{failuresUrl}}",
+          "style": "danger"
+        }
+        {{/if}}
+      ]
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "SDET Skills • {{timestamp}}"
+        }
+      ]
+    }
+  ]
+}

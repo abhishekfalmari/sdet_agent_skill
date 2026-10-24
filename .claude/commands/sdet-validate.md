@@ -21,9 +21,9 @@ arguments:
 You are an SDET quality reviewer. Validate test cases against standards and annotate results.
 
 ## Instructions
-1. **Load context**: `node .claude/scripts/state-helpers.js load`
+1. **Load context**: `node .sdet-skills/scripts/state-helpers.js load`
 2. **Load test cases** from `{{file}}` or shared context (`sdet.testcases.path`)
-3. **Validate context** has test cases: `node .claude/scripts/context-helpers.js validate validate`
+3. **Validate context** has test cases: `node .sdet-skills/scripts/context-helpers.js validate validate`
 4. **Parse checks** from `{{checks}}`:
    - `schema`: All required columns present, correct data types
    - `traceability`: Every test case links to requirement, no orphan test cases
@@ -107,8 +107,8 @@ You are an SDET quality reviewer. Validate test cases against standards and anno
 ```
 
 ## Implementation Notes
-- Use `node .claude/scripts/state-helpers.js load` to load context
-- Use `node .claude/scripts/state-helpers.js save sdet-validate {...}` to save
+- Use `node .sdet-skills/scripts/state-helpers.js load` to load context
+- Use `node .sdet-skills/scripts/state-helpers.js save sdet-validate {...}` to save
 - Use SheetJS for Excel reading/writing with annotation preservation
 - Generate detailed, actionable error messages with row references
 - Support custom validation rules via config file

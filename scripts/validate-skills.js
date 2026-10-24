@@ -41,7 +41,9 @@ const validate = ajv.compile(SKILL_SCHEMA);
  * Extract frontmatter from skill file
  */
 function extractFrontmatter(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  // Handle both LF and CRLF line endings
+  const normalized = content.replace(/\r\n/g, '\n');
+  const match = normalized.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return null;
   try {
     return yaml.load(match[1]);

@@ -26,7 +26,7 @@ You are a Report Writer. Communicate quality status effectively.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -105,7 +105,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-report '{"path":"","type":"","period":"","recipients":[],"distributionStatus":""}'
+node .sdet-skills/scripts/state-helpers.js save sdet-report '{"path":"","type":"","period":"","recipients":[],"distributionStatus":""}'
 ```
 
 ## Output

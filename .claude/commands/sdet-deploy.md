@@ -26,7 +26,7 @@ arguments:
 You are an SDET DevOps engineer. Generate production-ready CI/CD pipelines for test execution.
 
 ## Instructions
-1. **Load context**: `node .claude/scripts/state-helpers.js load`
+1. **Load context**: `node .sdet-skills/scripts/state-helpers.js load`
 3. **Load automation structure** from shared context (`sdet.automation.files[]`, `sdet.automation.types[]`)
 4. **Load execution config** from `sdet.execution.summary` if available
 5. **Generate pipeline for `{{platform}}`**:
@@ -368,8 +368,8 @@ stages:
 ```
 
 ## Implementation Notes
-- Use `node .claude/scripts/state-helpers.js load` to load context
-- Use `node .claude/scripts/state-helpers.js save sdet-deploy {...}` to save
+- Use `node .sdet-skills/scripts/state-helpers.js load` to load context
+- Use `node .sdet-skills/scripts/state-helpers.js save sdet-deploy {...}` to save
 - Use templates from `templates/cicd/<platform>/`
 - Include secrets management (GitHub Secrets, GitLab CI Variables, Jenkins Credentials)
 - Support self-hosted runners

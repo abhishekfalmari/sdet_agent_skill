@@ -99,6 +99,11 @@ async function install() {
     console.warn('⚠️  Some skills failed validation:', e.message);
   }
 
+  // Fix skill file paths to use absolute script paths
+  console.log('\n🔧 Fixing skill file script paths...');
+  await fixSkillScriptPaths();
+  console.log('✅ Skill paths fixed');
+
   // Create hook configuration
   console.log('\n🔧 Configuring hooks...');
   await setupHooks();
@@ -150,6 +155,7 @@ async function copyDir(src, srcRoot, dest, excludePatterns = []) {
 async function setupHooks() {
   const hooksDir = path.join(TARGET_DIR, '.claude', 'hooks');
   const settingsPath = path.join(TARGET_DIR, '.claude', 'settings.json');
+  const scriptsDir = path.join(TARGET_DIR, 'scripts').replace(/\\/g, '/');
 
   // Ensure hooks directory exists
   await fsPromises.mkdir(hooksDir, { recursive: true });
@@ -159,11 +165,11 @@ async function setupHooks() {
     hooks: {
       PreToolUse: [{
         matcher: 'sdet-*',
-        command: 'node .claude/scripts/state-helpers.js load'
+        command: `node ${scriptsDir}/state-helpers.js load`
       }],
       PostToolUse: [{
         matcher: 'sdet-*',
-        command: 'node .claude/scripts/state-helpers.js save'
+        command: `node ${scriptsDir}/state-helpers.js save`
       }]
     }
   }, null, 2));
@@ -173,7 +179,7 @@ async function setupHooks() {
     hooks: {
       PostToolUse: [{
         matcher: 'sdet-*',
-        command: 'node .claude/scripts/context-helpers.js export'
+        command: `node ${scriptsDir}/context-helpers.js export`
       }]
     }
   }, null, 2));
@@ -183,7 +189,7 @@ async function setupHooks() {
     hooks: {
       PostToolUse: [{
         matcher: 'sdet-orchestrate',
-        command: 'node .claude/scripts/checkpoint-helpers.js save'
+        command: `node ${scriptsDir}/checkpoint-helpers.js save`
       }]
     }
   }, null, 2));
@@ -193,7 +199,7 @@ async function setupHooks() {
     hooks: {
       PostToolUse: [{
         matcher: 'sdet-*',
-        command: 'node .claude/scripts/notify-helpers.js notify'
+        command: `node ${scriptsDir}/notify-helpers.js notify`
       }]
     }
   }, null, 2));
@@ -203,7 +209,7 @@ async function setupHooks() {
     permissions: {
       allow: [
         'Bash(npx sdet-*)',
-        'Bash(node .claude/scripts/*)',
+        `Bash(node ${scriptsDir}/*)`,
         'Read(.claude/context/**)',
         'Write(.claude/context/**)',
         'Write(artifacts/**)',
@@ -214,11 +220,11 @@ async function setupHooks() {
     },
     hooks: {
       PreToolUse: [
-        { matcher: 'sdet-*', command: 'node .claude/scripts/state-helpers.js load' }
+        { matcher: 'sdet-*', command: `node ${scriptsDir}/state-helpers.js load` }
       ],
       PostToolUse: [
-        { matcher: 'sdet-*', command: 'node .claude/scripts/state-helpers.js save' },
-        { matcher: 'sdet-*', command: 'node .claude/scripts/context-helpers.js export' }
+        { matcher: 'sdet-*', command: `node ${scriptsDir}/state-helpers.js save` },
+        { matcher: 'sdet-*', command: `node ${scriptsDir}/context-helpers.js export` }
       ]
     }
   }, null, 2));
@@ -278,3 +284,29 @@ if (require.main === module) {
 }
 
 module.exports = { install };
+
+async function fixSkillScriptPaths() {
+  const commandsDir = path.join(TARGET_DIR, '.claude', 'commands');
+  const scriptsDir = path.join(TARGET_DIR, 'scripts').replace(/\\/g, '/');
+
+  try {
+    const files = await fsPromises.readdir(commandsDir);
+    for (const file of files) {
+      if (file.endsWith('.md') && file.startsWith('sdet-')) {
+        const filePath = path.join(commandsDir, file);
+        let content = await fsPromises.readFile(filePath, 'utf-8');
+
+        // Replace .claude/scripts/ with absolute scripts path
+        const oldPath = '.claude/scripts/';
+        const newPath = `${scriptsDir}/`;
+
+        if (content.includes(oldPath)) {
+          content = content.split(oldPath).join(newPath);
+          await fsPromises.writeFile(filePath, content, 'utf-8');
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('⚠️  Could not fix all skill paths:', e.message);
+  }
+}

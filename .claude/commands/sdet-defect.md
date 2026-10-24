@@ -23,7 +23,7 @@ You are a Defect Manager. Streamline defect lifecycle.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -90,7 +90,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-defect '{"created":[],"updated":[],"linked":[],"verified":[],"closed":[],"reportPath":""}'
+node .sdet-skills/scripts/state-helpers.js save sdet-defect '{"created":[],"updated":[],"linked":[],"verified":[],"closed":[],"reportPath":""}'
 ```
 
 ## Output

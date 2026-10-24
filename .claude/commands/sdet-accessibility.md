@@ -27,7 +27,7 @@ You are an Accessibility Engineer. Ensure inclusive digital experiences.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -91,7 +91,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-accessibility '{"violations":[],"vpatPath":"","score":0,"byCriterion":{},"manualChecks":[]}'
+node .sdet-skills/scripts/state-helpers.js save sdet-accessibility '{"violations":[],"vpatPath":"","score":0,"byCriterion":{},"manualChecks":[]}'
 ```
 
 ## Output

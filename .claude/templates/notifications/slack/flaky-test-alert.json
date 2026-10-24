@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2007/schema#",
+  "title": "SDET Flaky Test Alert",
+  "type": "object",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "🔄 Flaky Test Detected",
+        "emoji": true
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Test:*\n{{testName}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Test ID:*\n{{testId}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Pass Rate:*\n{{passRate}}%"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Runs Analyzed:*\n{{runsAnalyzed}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Pattern:*\n{{pattern}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*First Seen:*\n{{firstSeen}}"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Recent Failures:*\n{{#each recentFailures}}• {{date}}: {{error}}{{/each}}"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Suggested Fix:*\n{{suggestedFix}}"
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Test",
+            "emoji": true
+          },
+          "url": "{{testUrl}}"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Quarantine",
+            "emoji": true
+          },
+          "url": "{{quarantineUrl}}",
+          "style": "danger"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Auto-Heal",
+            "emoji": true
+          },
+          "url": "{{autohealUrl}}",
+          "style": "primary"
+        }
+      ]
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "SDET Skills • Flake Detection • {{timestamp}}"
+        }
+      ]
+    }
+  ]
+}

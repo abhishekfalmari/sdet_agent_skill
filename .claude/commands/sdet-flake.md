@@ -23,7 +23,7 @@ You are a Test Reliability Engineer. Eliminate flaky test noise.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -77,7 +77,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-flake '{"flaky":[],"quarantined":[],"fixSuggestions":[],"metrics":{}}'
+node .sdet-skills/scripts/state-helpers.js save sdet-flake '{"flaky":[],"quarantined":[],"fixSuggestions":[],"metrics":{}}'
 ```
 
 ## Output

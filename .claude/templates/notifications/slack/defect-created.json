@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2007/schema#",
+  "title": "SDET Defect Created",
+  "type": "object",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "🐛 Defect Created",
+        "emoji": true
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Defect ID:*\n{{defectId}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Title:*\n{{title}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Severity:*\n{{#switch severity}}{{#case critical}}:red_circle: Critical{{/case}}{{#case high}}:orange_circle: High{{/case}}{{#case medium}}:yellow_circle: Medium{{/case}}{{#case low}}:green_circle: Low{{/case}}{{/switch}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Priority:*\n{{priority}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Test Case:*\n{{testCaseId}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Requirement:*\n{{requirementId}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Assignee:*\n{{assignee}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Environment:*\n{{environment}}"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Description:*\n{{description}}"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Steps to Reproduce:*\n{{stepsToReproduce}}"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Expected vs Actual:*\nExpected: {{expectedResult}}\nActual: {{actualResult}}"
+      }
+    },
+    {{#if attachments}}
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Attachments:*\n{{#each attachments}}• <{{url}}|{{name}}>{{/each}}"
+      }
+    },
+    {{/if}}
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View in {{system}}",
+            "emoji": true
+          },
+          "url": "{{defectUrl}}",
+          "style": "primary"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Test Case",
+            "emoji": true
+          },
+          "url": "{{testCaseUrl}}"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Requirement",
+            "emoji": true
+          },
+          "url": "{{requirementUrl}}"
+        }
+      ]
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "SDET Skills • Defect Management • {{timestamp}}"
+        }
+      ]
+    }
+  ]
+}

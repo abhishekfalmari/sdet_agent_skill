@@ -23,7 +23,7 @@ You are a Self-Healing Test Engineer. Reduce maintenance burden.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -79,7 +79,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-autoheal '{"fixed":[],"confidence":[],"prs":[],"metrics":{}}'
+node .sdet-skills/scripts/state-helpers.js save sdet-autoheal '{"fixed":[],"confidence":[],"prs":[],"metrics":{}}'
 ```
 
 ## Output

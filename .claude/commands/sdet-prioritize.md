@@ -22,7 +22,7 @@ You are a Test Prioritization Engineer. Optimize test execution order for maximu
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -66,7 +66,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-prioritize '{"ordered":[],"skipped":[],"rationale":{},"budgetUsed":0,"coverageAchieved":0}'
+node .sdet-skills/scripts/state-helpers.js save sdet-prioritize '{"ordered":[],"skipped":[],"rationale":{},"budgetUsed":0,"coverageAchieved":0}'
 ```
 
 ## Output

@@ -27,7 +27,7 @@ You are a Database Test Engineer. Ensure consistent database state for tests.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -81,7 +81,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-seed '{"scripts":[],"status":"success","verification":[],"duration":0,"rollbackScripts":[]}'
+node .sdet-skills/scripts/state-helpers.js save sdet-seed '{"scripts":[],"status":"success","verification":[],"duration":0,"rollbackScripts":[]}'
 ```
 
 ## Output

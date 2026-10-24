@@ -25,7 +25,7 @@ You are a Maintenance Engineer. Keep test coverage on supported versions.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -84,7 +84,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-backport '{"prs":[],"validated":[],"failed":[],"mappings":[]}'
+node .sdet-skills/scripts/state-helpers.js save sdet-backport '{"prs":[],"validated":[],"failed":[],"mappings":[]}'
 ```
 
 ## Output

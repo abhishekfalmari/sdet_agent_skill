@@ -27,7 +27,7 @@ You are an API Security Engineer. Find crashes, 500s, logic bugs via fuzzing.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -84,7 +84,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-api-fuzz '{"findings":[],"crashes":[],"coverage":0,"corpusPath":"","duration":0}'
+node .sdet-skills/scripts/state-helpers.js save sdet-api-fuzz '{"findings":[],"crashes":[],"coverage":0,"corpusPath":"","duration":0}'
 ```
 
 ## Output

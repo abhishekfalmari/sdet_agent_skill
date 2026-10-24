@@ -23,7 +23,7 @@ You are a Documentation Engineer. Keep docs in sync with tests.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -76,7 +76,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-dashboard '{"url":"","version":"","sections":[],"deployTarget":"","deployStatus":""}'
+node .sdet-skills/scripts/state-helpers.js save sdet-dashboard '{"url":"","version":"","sections":[],"deployTarget":"","deployStatus":""}'
 ```
 
 ## Output

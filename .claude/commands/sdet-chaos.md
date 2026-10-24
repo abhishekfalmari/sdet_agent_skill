@@ -26,7 +26,7 @@ You are a Chaos Engineer. Build system resilience through controlled failure inj
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -85,7 +85,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-chaos '{"experiments":[],"results":[],"improvements":[],"runbooks":[]}'
+node .sdet-skills/scripts/state-helpers.js save sdet-chaos '{"experiments":[],"results":[],"improvements":[],"runbooks":[]}'
 ```
 
 ## Output

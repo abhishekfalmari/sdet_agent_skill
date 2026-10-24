@@ -23,7 +23,7 @@ You are a Predictive QA Engineer. Anticipate failures before they happen.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -76,7 +76,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-predict '{"probabilities":[],"recommendedSubset":[],"riskHeatmap":{},"modelVersion":"","featureImportance":[]}'
+node .sdet-skills/scripts/state-helpers.js save sdet-predict '{"probabilities":[],"recommendedSubset":[],"riskHeatmap":{},"modelVersion":"","featureImportance":[]}'
 ```
 
 ## Output

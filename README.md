@@ -61,39 +61,52 @@ Think of it as a **testing assistant that lives inside your terminal**. You type
 
 1. **Install Node.js 18+** → [nodejs.org](https://nodejs.org/)
 2. **Install Claude Code CLI** → [claude.ai/code](https://claude.ai/code)
-
-### Installation (Required — Do This Once)
-
-The skills must be installed to Claude Code's skill directory. Run these commands **in order**:
-
-```bash
-# 1. Clone anywhere (e.g., your home folder)
-git clone https://github.com/yourorg/sdet-skills.git ~/sdet-skills
-cd ~/sdet-skills
-
-# 2. Install npm dependencies
-npm install
-
-# 3. ⚠️ IMPORTANT: Run the install script to copy skills to ~/.claude/skills/sdet/
-node scripts/install.js
-
-# 4. Restart Claude Code completely (close and reopen)
-```
-
-> **Windows users:** Use Git Bash or WSL for the commands above. In PowerShell, use `~` for home directory or `$env:USERPROFILE`.
-
-**Why step 3?** The `npm install` only downloads dependencies. The `node scripts/install.js` command copies all 51 skill commands, hooks, templates, and configs to `~/.claude/skills/sdet/` where Claude Code can discover them.
+3. **Install VS Code** with **Claude Code extension**
 
 ---
 
-### ⚠️ CRITICAL: Configure Your Project to Use the Skills
+### Option A: Team Setup (Recommended — Zero Config Per User)
 
-**The slash commands (`/sdet-analyze`, `/sdet-generate`, etc.) will NOT work in your project until you configure it to load the skills from the global installation.**
+**Best for teams:** Add SDET skills as a git submodule. Every team member just runs `git clone --recursive` and it works.
 
-After running the install script above, you must add the **absolute path** to **each project's** `.claude/settings.json`:
+```bash
+# 1. In YOUR PROJECT repo (do this once):
+cd your-project
+git submodule add https://github.com/yourorg/sdet-skills.git .sdet-skills
+cd .claude && ln -s ../.sdet-skills/.claude/commands commands
+git add .gitmodules .sdet-skills .claude/commands .claude/settings.json
+git commit -m "Add SDET skills via submodule"
 
-**Windows (PowerShell/cmd):**
+# 2. Team members clone with skills:
+git clone --recursive <your-project-repo>
+# Open in VS Code → restart → ready to use!
+```
+
+**Project `.claude/settings.json` (committed to repo):**
 ```json
+{
+  "skills": {
+    "autoLoad": true,
+    "paths": [
+      ".claude/commands",
+      ".sdet-skills/.claude/commands"
+    ]
+  }
+}
+```
+
+> ✅ **No global install, no per-user path config, fully version-controlled.**
+
+---
+
+### Option B: Global Install (If You Prefer)
+
+```bash
+# 1. Clone skill pack
+git clone https://github.com/yourorg/sdet-skills.git ~/sdet-skills
+cd ~/sdet-skills && npm install && node scripts/install.js
+
+# 2. In EACH project's .claude/settings.json (use ABSOLUTE path):
 {
   "skills": {
     "autoLoad": true,
@@ -103,103 +116,33 @@ After running the install script above, you must add the **absolute path** to **
     ]
   }
 }
+# 3. Restart VS Code completely
 ```
 
-**Git Bash / WSL / Linux / macOS:**
-```json
-{
-  "skills": {
-    "autoLoad": true,
-    "paths": [
-      ".claude/commands",
-      "/home/<YOUR_USERNAME>/.claude/skills/sdet/.claude/commands"
-    ]
-  }
-}
-```
+> ⚠️ **Note:** `skills.paths` with absolute paths may not work in current VS Code extension. Use **Option A (submodule + symlink)** for reliable skill loading.
 
-> ⚠️ **Replace `<YOUR_USERNAME>`** with your actual Windows username (e.g., `abhis` → `C:/Users/abhis/.claude/skills/sdet/.claude/commands`)
-
-**Quick setup for a new project (Windows PowerShell):**
-
-```powershell
-cd ~\my-test-project
-mkdir -Force .claude
-@'
-{
-  "skills": {
-    "autoLoad": true,
-    "paths": [
-      ".claude/commands",
-      "C:/Users/$env:USERNAME/.claude/skills/sdet/.claude/commands"
-    ]
-  }
-}
-'@ | Out-File -Encoding utf8 .claude/settings.json
-```
-
-**Quick setup for a new project (Git Bash / WSL):**
-
-```bash
-cd ~/my-test-project
-mkdir -p .claude
-cat > .claude/settings.json << 'EOF'
-{
-  "skills": {
-    "autoLoad": true,
-    "paths": [
-      ".claude/commands",
-      "/home/$USER/.claude/skills/sdet/.claude/commands"
-    ]
-  }
-}
-EOF
-```
-
-Then **fully restart Claude Code** (close window completely, reopen) and verify:
-
-```bash
-/sdet-analyze --help
-```
-
-> **Why this step?** The install script copies skills to `~/.claude/skills/sdet/` (a global location), but Claude Code only loads skills from paths listed in each project's `.claude/settings.json`. Adding the **absolute path** above tells Claude Code: "Also load skills from the global SDET installation."
->
-> **Note:** Tilde (`~`) expansion does NOT work in settings.json. You must use the full absolute path.
+---
 
 ### Verify It Works
 
-After restarting Claude Code, run:
+After setup, **fully restart VS Code** (close all windows → reopen project), then in **Claude Code chat panel**:
+
 ```bash
+/skill-doctor
+# Should show 50+ SDET skills loaded
+
 /sdet-analyze --help
+# Should show help output
 ```
 
-You should see the help output. If you see "Command not found":
+> **Type slash commands in the Claude Code chat panel (sidebar), NOT in the terminal.**
 
-| Check | Fix |
-|-------|-----|
-| Did you run `node scripts/install.js`? | Run it from the cloned repo folder |
-| Did you fully restart Claude Code? | Close window completely, reopen |
-| Are you on Windows? | Use Git Bash/WSL, not cmd/PowerShell for install |
-
-The install script creates this structure:
-```
-~/.claude/skills/sdet/
-├── .claude/commands/     ← 51 skill commands (.md files)
-├── .claude/hooks/        ← Auto-context hooks
-├── .claude/settings.json ← Permissions
-├── templates/            ← Excel, automation, CI/CD templates
-├── scripts/              ← Helper scripts
-└── ml-models/            ← ONNX models for ML features
-```
-
-### Your First Test Run
+### Your First Test Run (After Option A Setup)
 
 ```bash
-# 1. Create a project folder ANYWHERE (not in the skill directory)
-mkdir -p ~/my-test-project/requirements
-cd ~/my-test-project
-
-# 2. Add a simple requirement file (copy-paste this)
+# 1. In your project (already has .sdet-skills submodule + symlink)
+# 2. Add your requirements
+mkdir -p requirements
 cat > ./requirements/login.md << 'EOF'
 # User Login
 
@@ -229,13 +172,13 @@ EOF
 ```
 
 **That's it.** In ~2-3 minutes you'll have:
-- ✅ Structured requirements parsed from your markdown
-- ✅ ~10-15 test cases in Excel (with positive, negative, boundary tests)
-- ✅ Validation report showing test quality
-- ✅ Playwright test code for UI + API tests
-- ✅ Test execution results with screenshots
-- ✅ Updated Excel with pass/fail status
-- ✅ Traceability matrix linking tests → requirements
+- ✅ Structured requirements parsed from your markdown → `artifacts/requirements/structured-requirements.json`
+- ✅ ~10-15 test cases in Excel → `artifacts/test-cases/test-cases-*.xlsx`
+- ✅ Validation report → `artifacts/validation/validation-report.json`
+- ✅ Playwright test code for UI + API → `tests/ui/`, `tests/api/`
+- ✅ Test execution results with screenshots → `artifacts/results/`
+- ✅ Updated Excel with pass/fail status → `artifacts/test-cases/test-cases-results-*.xlsx`
+- ✅ Traceability matrix linking tests → requirements → `artifacts/traceability/traceability-matrix.xlsx`
 
 ---
 
@@ -485,62 +428,31 @@ runtime:
 
 ## Troubleshooting — Common Issues
 
-### "Command not found: /sdet-xxx"
+### "Command not found: /sdet-xxx" or Skills Not Loading
 
-**Most likely cause:** You ran `npm install` but missed the install script, **OR you didn't configure your project's `.claude/settings.json` with the absolute path to load the skills.**
+**Most likely cause:** VS Code extension doesn't load skills from `skills.paths` (known limitation in current version).
 
-**Fix — Step 1: Run install script (if not done):**
+**✅ Fix — Use Submodule + Symlink (Recommended):**
 ```bash
-cd ~/sdet-skills  # or wherever you cloned the repo
-node scripts/install.js
+# In your project:
+git submodule add https://github.com/yourorg/sdet-skills.git .sdet-skills
+cd .claude && ln -s ../.sdet-skills/.claude/commands commands
+git add .gitmodules .sdet-skills .claude/commands .claude/settings.json
+git commit -m "Add SDET skills"
+
+# Then: Close ALL VS Code windows → Reopen project → Test
+/skill-doctor  # Should show 50+ SDET skills
 ```
 
-**Fix — Step 2: Configure your project (REQUIRED) — Use ABSOLUTE path:**
-
-**Windows (PowerShell):**
-```powershell
-cd ~\my-project
-mkdir -Force .claude
-@'
-{
-  "skills": {
-    "autoLoad": true,
-    "paths": [
-      ".claude/commands",
-      "C:/Users/$env:USERNAME/.claude/skills/sdet/.claude/commands"
-    ]
-  }
-}
-'@ | Out-File -Encoding utf8 .claude/settings.json
-```
-
-**Git Bash / WSL / Linux / macOS:**
+**✅ Fix — If Using Global Install:**
 ```bash
-cd ~/my-project
-mkdir -p .claude
-cat > .claude/settings.json << 'EOF'
-{
-  "skills": {
-    "autoLoad": true,
-    "paths": [
-      ".claude/commands",
-      "/home/$USER/.claude/skills/sdet/.claude/commands"
-    ]
-  }
-}
-EOF
+# Ensure settings.json has the absolute path, then FULLY restart VS Code
+# (Close ALL windows, wait 3s, reopen project only)
 ```
 
-> ⚠️ **Critical:** Tilde (`~`) does NOT work in settings.json. Use the full absolute path (e.g., `C:/Users/abhis/.claude/skills/sdet/.claude/commands`).
+**❌ Don't type slash commands in terminal** — Type them in **Claude Code chat panel** (sidebar).
 
-**Fix — Step 3: Restart Claude Code completely** (close window, reopen)
-
-**Other causes:**
-- Skills installed but Claude Code not restarted → Close and reopen Claude Code completely
-- Wrong clone location → Must run `node scripts/install.js` from the cloned repo (it copies to `~/.claude/skills/sdet/`)
-- Permission issues on Windows → Run terminal as Administrator for the install step
-- Project's `.claude/settings.json` uses tilde (`~`) instead of absolute path → Fix the path
-- Project's `.claude/settings.json` missing the `skills.paths` entry → Add the configuration above
+---
 
 ### "npm install fails"
 **Fix:** 
@@ -573,6 +485,14 @@ Look for `"status": "failed"` in any skill.
 ```bash
 /sdet-execute --parallel 2
 ```
+
+### "Pipeline creates sample requirements instead of using mine"
+**Fix:** Ensure requirements exist in `requirements/` folder at project root:
+```bash
+ls requirements/
+# Should show your .md files (e.g., login.md)
+```
+The pipeline auto-discovers `requirements/` in the project root where VS Code is opened.
 
 ---
 

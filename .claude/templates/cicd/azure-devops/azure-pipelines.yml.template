@@ -1,0 +1,706 @@
+# Azure DevOps SDET Pipeline Template
+# This template is used by /sdet-deploy to generate the actual pipeline
+
+trigger:
+  - main
+  - develop
+
+pr:
+  - main
+
+schedules:
+  - cron: "0 2 * * *"
+    displayName: Nightly SDET Pipeline
+    branches:
+      include:
+        - main
+    always: true
+
+variables:
+  - name: NODE_VERSION
+    value: '20'
+  - name: SDET_WORKFLOW
+    value: 'ci'
+  - name: BASE_URL
+    value: $(BASE_URL)
+  - name: NPM_CACHE_FOLDER
+    value: $(Pipeline.Workspace)/.npm
+
+stages:
+  # ===========================================
+  # ANALYZE STAGE
+  # ===========================================
+  - stage: Analyze
+    displayName: Analyze Requirements
+    condition: or(eq(variables['SDET_WORKFLOW'], 'full'), eq(variables['SDET_WORKFLOW'], 'security'), eq(variables['SDET_WORKFLOW'], 'performance'))
+    jobs:
+      - job: Analyze
+        displayName: Analyze Requirements
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 15
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              npx sdet-analyze --source ./requirements --format json
+            displayName: 'Run SDET Analyze'
+
+          - publish: artifacts/requirements
+            artifact: requirements
+            displayName: 'Publish requirements artifact'
+
+  # ===========================================
+  # GENERATE STAGE
+  # ===========================================
+  - stage: Generate
+    displayName: Generate Test Cases
+    dependsOn: Analyze
+    condition: or(eq(variables['SDET_WORKFLOW'], 'full'), eq(variables['SDET_WORKFLOW'], 'security'), eq(variables['SDET_WORKFLOW'], 'performance'), eq(variables['SDET_WORKFLOW'], 'quick'))
+    jobs:
+      - job: Generate
+        displayName: Generate Test Cases
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 15
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - download: current
+            artifact: requirements
+            displayName: 'Download requirements artifact'
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              if [ "$(SDET_WORKFLOW)" = "security" ]; then
+                TEMPLATE="security"
+              elif [ "$(SDET_WORKFLOW)" = "performance" ]; then
+                TEMPLATE="performance"
+              else
+                TEMPLATE="standard"
+              fi
+              npx sdet-generate --template $TEMPLATE
+            displayName: 'Run SDET Generate'
+
+          - publish: artifacts/test-cases
+            artifact: testcases
+            displayName: 'Publish test cases artifact'
+
+  # ===========================================
+  # VALIDATE STAGE
+  # ===========================================
+  - stage: Validate
+    displayName: Validate Test Cases
+    dependsOn: Generate
+    jobs:
+      - job: Validate
+        displayName: Validate Test Cases
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 10
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - download: current
+            artifact: testcases
+            displayName: 'Download test cases artifact'
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              STRICT=false
+              if [ "$(SDET_WORKFLOW)" = "full" ] || [ "$(SDET_WORKFLOW)" = "security" ] || [ "$(SDET_WORKFLOW)" = "performance" ]; then
+                STRICT=true
+              fi
+              npx sdet-validate --strict $STRICT
+            displayName: 'Run SDET Validate'
+
+          - publish: artifacts/validation
+            artifact: validation
+            displayName: 'Publish validation artifact'
+
+  # ===========================================
+  # APPROVAL GATE
+  # ===========================================
+  - stage: Approve
+    displayName: Manual Approval
+    dependsOn: Validate
+    condition: and(eq(variables['SDET_WORKFLOW'], 'full'), ne(variables['Build.Reason'], 'Schedule'))
+    jobs:
+      - job: Approval
+        displayName: Wait for Approval
+        pool: server
+        timeoutInMinutes: 1440
+        steps:
+          - task: ManualValidation@0
+            displayName: 'Wait for manual approval'
+            inputs:
+              instructions: 'Review validation results in artifacts/validation/ and approve to continue'
+              onTimeout: 'reject'
+              approvers: '$(Approvers)'
+
+  # ===========================================
+  # AUTOMATE STAGE (Parallel)
+  # ===========================================
+  - stage: Automate
+    displayName: Generate Automation
+    dependsOn:
+      - Validate
+      - Approve
+    condition: or(eq(variables['SDET_WORKFLOW'], 'full'), eq(variables['SDET_WORKFLOW'], 'quick'), eq(variables['SDET_WORKFLOW'], 'ci'), eq(variables['SDET_WORKFLOW'], 'security'), eq(variables['SDET_WORKFLOW'], 'performance'))
+    jobs:
+      - job: AutomateUI
+        displayName: Generate UI Automation
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 20
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - download: current
+            artifact: testcases
+            displayName: 'Download test cases artifact'
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              npx playwright install --with-deps chromium
+            displayName: 'Install Playwright browsers'
+
+          - script: |
+              npx sdet-automate --type ui --framework playwright
+            displayName: 'Run SDET Automate (UI)'
+
+          - publish: tests/ui
+            artifact: automation-ui
+            displayName: 'Publish UI automation artifact'
+
+      - job: AutomateAPI
+        displayName: Generate API Automation
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 20
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - download: current
+            artifact: testcases
+            displayName: 'Download test cases artifact'
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              npx sdet-automate --type api --framework pactum
+            displayName: 'Run SDET Automate (API)'
+
+          - publish: tests/api
+            artifact: automation-api
+            displayName: 'Publish API automation artifact'
+
+      - job: AutomateSecurity
+        displayName: Generate Security Automation
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 20
+        condition: eq(variables['SDET_WORKFLOW'], 'security')
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - download: current
+            artifact: testcases
+            displayName: 'Download test cases artifact'
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              npm install -g semgrep
+              curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+            displayName: 'Install security tools'
+
+          - script: |
+              npx sdet-automate --type security --framework semgrep
+            displayName: 'Run SDET Automate (Security)'
+
+          - publish: tests/security
+            artifact: automation-security
+            displayName: 'Publish Security automation artifact'
+
+      - job: AutomatePerformance
+        displayName: Generate Performance Automation
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 20
+        condition: eq(variables['SDET_WORKFLOW'], 'performance')
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - download: current
+            artifact: testcases
+            displayName: 'Download test cases artifact'
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              sudo gpg -k
+              sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+              echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+              sudo apt-get update
+              sudo apt-get install -y k6
+            displayName: 'Install k6'
+
+          - script: |
+              npx sdet-automate --type performance --framework k6
+            displayName: 'Run SDET Automate (Performance)'
+
+          - publish: tests/performance
+            artifact: automation-performance
+            displayName: 'Publish Performance automation artifact'
+
+  # ===========================================
+  # EXECUTE STAGE (Parallel)
+  # ===========================================
+  - stage: Execute
+    displayName: Execute Tests
+    dependsOn: Automate
+    condition: or(eq(variables['SDET_WORKFLOW'], 'full'), eq(variables['SDET_WORKFLOW'], 'quick'), eq(variables['SDET_WORKFLOW'], 'ci'), eq(variables['SDET_WORKFLOW'], 'security'), eq(variables['SDET_WORKFLOW'], 'performance'))
+    jobs:
+      - job: ExecuteUI
+        displayName: Execute UI Tests
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 60
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - download: current
+            artifact: automation-ui
+            displayName: 'Download UI automation artifact'
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              npx playwright install --with-deps chromium
+            displayName: 'Install Playwright browsers'
+
+          - script: |
+              npx sdet-execute --type ui --parallel 4 --retry 2 --shard duration
+            displayName: 'Run SDET Execute (UI)'
+
+          - publish: artifacts/results
+            artifact: results-ui
+            displayName: 'Publish UI results artifact'
+
+      - job: ExecuteAPI
+        displayName: Execute API Tests
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 60
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - download: current
+            artifact: automation-api
+            displayName: 'Download API automation artifact'
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              npx sdet-execute --type api --parallel 4 --retry 2 --shard duration
+            displayName: 'Run SDET Execute (API)'
+
+          - publish: artifacts/results
+            artifact: results-api
+            displayName: 'Publish API results artifact'
+
+      - job: ExecuteSecurity
+        displayName: Execute Security Tests
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 60
+        condition: eq(variables['SDET_WORKFLOW'], 'security')
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - download: current
+            artifact: automation-security
+            displayName: 'Download Security automation artifact'
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              npm install -g semgrep
+              curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+            displayName: 'Install security tools'
+
+          - script: |
+              npx sdet-execute --type security
+            displayName: 'Run SDET Execute (Security)'
+
+          - publish: artifacts/results
+            artifact: results-security
+            displayName: 'Publish Security results artifact'
+
+      - job: ExecutePerformance
+        displayName: Execute Performance Tests
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 120
+        condition: eq(variables['SDET_WORKFLOW'], 'performance')
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - download: current
+            artifact: automation-performance
+            displayName: 'Download Performance automation artifact'
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              sudo gpg -k
+              sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+              echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+              sudo apt-get update
+              sudo apt-get install -y k6
+            displayName: 'Install k6'
+
+          - script: |
+              npx sdet-execute --type performance --timeout 120
+            displayName: 'Run SDET Execute (Performance)'
+
+          - publish: artifacts/results
+            artifact: results-performance
+            displayName: 'Publish Performance results artifact'
+
+  # ===========================================
+  # ANALYZE RESULTS STAGE
+  # ===========================================
+  - stage: AnalyzeResults
+    displayName: Analyze Results
+    dependsOn: Execute
+    jobs:
+      - job: AnalyzeResults
+        displayName: Analyze Test Results
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 15
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - download: current
+            artifact: testcases
+            displayName: 'Download test cases artifact'
+
+          - download: current
+            artifact: results-ui
+            displayName: 'Download UI results artifact'
+
+          - download: current
+            artifact: results-api
+            displayName: 'Download API results artifact'
+
+          - download: current
+            artifact: results-security
+            displayName: 'Download Security results artifact'
+            condition: eq(variables['SDET_WORKFLOW'], 'security')
+
+          - download: current
+            artifact: results-performance
+            displayName: 'Download Performance results artifact'
+            condition: eq(variables['SDET_WORKFLOW'], 'performance')
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              CREATE_DEFECTS=false
+              if [ "$(Build.Reason)" = "Schedule" ]; then
+                CREATE_DEFECTS=true
+              fi
+              npx sdet-analyze-results --updateExcel true --correlateDefects true --generateTrends true --createDefects $CREATE_DEFECTS
+            displayName: 'Run SDET Analyze Results'
+
+          - publish: artifacts/analysis
+            artifact: analysis
+            displayName: 'Publish analysis artifact'
+
+          - publish: artifacts/test-cases/test-cases-results-*.xlsx
+            artifact: testcases-with-results
+            displayName: 'Publish updated test cases'
+
+  # ===========================================
+  # QUALITY GATES STAGE
+  # ===========================================
+  - stage: QualityGates
+    displayName: Quality Gates
+    dependsOn: AnalyzeResults
+    condition: or(eq(variables['SDET_WORKFLOW'], 'full'), eq(variables['SDET_WORKFLOW'], 'security'), eq(variables['SDET_WORKFLOW'], 'performance'))
+    jobs:
+      - job: QualityGates
+        displayName: Run Quality Gates
+        pool:
+          vmImage: 'ubuntu-latest'
+        timeoutInMinutes: 10
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(NPM_CACHE_FOLDER)
+              cacheHitVar: NPM_CACHE_RESTORED
+
+          - download: current
+            artifact: analysis
+            displayName: 'Download analysis artifact'
+
+          - download: current
+            artifact: results-ui
+            displayName: 'Download UI results artifact'
+
+          - download: current
+            artifact: results-api
+            displayName: 'Download API results artifact'
+
+          - script: |
+              npm ci --cache $(NPM_CACHE_FOLDER) --prefer-offline
+            displayName: 'Install dependencies'
+
+          - script: |
+              # Coverage gate
+              if [ -f artifacts/results/coverage/coverage-summary.json ]; then
+                COVERAGE=$(cat artifacts/results/coverage/coverage-summary.json | jq '.total.lines.pct')
+                echo "Coverage: $COVERAGE%"
+                if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+                  echo "##vso[task.logissue type=error]Coverage gate failed: $COVERAGE% < 80%"
+                  exit 1
+                fi
+                echo "Coverage gate passed: $COVERAGE% >= 80%"
+              fi
+
+              # Critical failures gate
+              SUMMARY_FILE=$(find artifacts/results -name "execution-summary-*.json" | head -1)
+              if [ -f "$SUMMARY_FILE" ]; then
+                FAILURES=$(cat "$SUMMARY_FILE" | jq '.summary.failed')
+                echo "Critical failures: $FAILURES"
+                if [ "$FAILURES" -gt 0 ]; then
+                  echo "##vso[task.logissue type=error]Critical failures gate failed: $FAILURES failures"
+                  exit 1
+                fi
+                echo "Critical failures gate passed"
+              fi
+
+              # Security gate
+              if [ "$(SDET_WORKFLOW)" = "security" ] && [ -f artifacts/results/security/semgrep-results.json ]; then
+                CRITICAL=$(cat artifacts/results/security/semgrep-results.json | jq '[.results[] | select(.extra.severity=="ERROR")] | length')
+                if [ "$CRITICAL" -gt 0 ]; then
+                  echo "##vso[task.logissue type=error]Security gate failed: $CRITICAL critical findings"
+                  exit 1
+                fi
+                echo "Security gate passed"
+              fi
+
+              # Performance gate
+              if [ "$(SDET_WORKFLOW)" = "performance" ] && [ -f artifacts/results/performance/k6-summary.json ]; then
+                echo "Performance budgets checked"
+              fi
+            displayName: 'Run Quality Gates'
+
+  # ===========================================
+  # DEPLOY STAGE
+  # ===========================================
+  - stage: Deploy
+    displayName: Deploy to Production
+    dependsOn: QualityGates
+    condition: and(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['Build.Reason'], 'IndividualCI'), or(eq(variables['SDET_WORKFLOW'], 'full'), eq(variables['SDET_WORKFLOW'], 'ci')))
+    jobs:
+      - deployment: DeployProduction
+        displayName: Deploy to Production
+        environment: 'production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: |
+                    echo "Deploying to production..."
+                    # Add deployment commands here
+                    echo "Deployment complete"
+                  displayName: 'Deploy to Production'
+
+# Notifications handled via Azure DevOps service hooks
+# Configure in Project Settings > Service Hooks

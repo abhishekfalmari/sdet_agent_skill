@@ -3,7 +3,7 @@
     "PostToolUse": [
       {
         "matcher": "sdet-*",
-        "command": "node .claude/scripts/notify-helpers.js notify"
+        "command": "node .sdet-skills/scripts/notify-helpers.js notify"
       }
     ]
   }

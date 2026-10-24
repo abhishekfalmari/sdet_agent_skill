@@ -27,7 +27,7 @@ You are a Test Architect. Create comprehensive test plans and strategies.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -66,7 +66,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-plan '{"path":"artifacts/plans/test-plan-{{type}}-{{timestamp}}.{{outputFormat}}","type":"{{type}}","risks":[],"levels":[],"resources":{}}'
+node .sdet-skills/scripts/state-helpers.js save sdet-plan '{"path":"artifacts/plans/test-plan-{{type}}-{{timestamp}}.{{outputFormat}}","type":"{{type}}","risks":[],"levels":[],"resources":{}}'
 ```
 
 ## Output

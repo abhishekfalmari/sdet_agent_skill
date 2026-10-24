@@ -1,0 +1,588 @@
+# Data Masking Rules Configuration
+# Used by sdet-mask, sdet-data, sdet-seed
+# Place at: templates/configs/data-masking-rules.yaml
+
+version: "1.0"
+description: "Data masking and privacy compliance rules for test data"
+
+# Global Settings
+global:
+  defaultMode: "deterministic"  # deterministic, random, format-preserving, encryption
+  preserveReferentialIntegrity: true
+  seed: "sdet-mask-seed-2024"  # For deterministic masking
+  encryptionKey: "${VAULT:data-masking-key}"  # For encryption mode
+
+# Regulation-Specific Rules
+regulations:
+  gdpr:
+    description: "General Data Protection Regulation (EU)"
+    piiCategories:
+      - "direct_identifier"
+      - "indirect_identifier"
+      - "special_category"
+    rules:
+      - field: "email"
+        type: "direct_identifier"
+        mode: "format-preserving"
+        template: "user{{index}}@example.com"
+
+      - field: "first_name"
+        type: "direct_identifier"
+        mode: "synthetic"
+        generator: "firstName"
+        locale: "en"
+
+      - field: "last_name"
+        type: "direct_identifier"
+        mode: "synthetic"
+        generator: "lastName"
+        locale: "en"
+
+      - field: "phone"
+        type: "direct_identifier"
+        mode: "format-preserving"
+        template: "+1-555-{{random:3}}-{{random:4}}"
+
+      - field: "address"
+        type: "indirect_identifier"
+        mode: "synthetic"
+        generator: "streetAddress"
+
+      - field: "ip_address"
+        type: "indirect_identifier"
+        mode: "format-preserving"
+        template: "192.168.{{random:1}}.{{random:1}}"
+
+      - field: "ssn"
+        type: "direct_identifier"
+        mode: "format-preserving"
+        template: "{{random:3}}-{{random:2}}-{{random:4}}"
+        validation: "luhn"
+
+      - field: "date_of_birth"
+        type: "special_category"
+        mode: "random"
+        range:
+          min: "1940-01-01"
+          max: "2005-12-31"
+
+      - field: "health_data"
+        type: "special_category"
+        mode: "null"
+        # Or: mode: "synthetic", generator: "lorem"
+
+      - field: "biometric_data"
+        type: "special_category"
+        mode: "null"
+
+      - field: "political_opinion"
+        type: "special_category"
+        mode: "random"
+        values: ["liberal", "conservative", "moderate", "other"]
+
+      - field: "religious_belief"
+        type: "special_category"
+        mode: "random"
+        values: ["christian", "muslim", "jewish", "hindu", "buddhist", "none", "other"]
+
+      - field: "genetic_data"
+        type: "special_category"
+        mode: "null"
+
+      - field: "sexual_orientation"
+        type: "special_category"
+        mode: "random"
+        values: ["heterosexual", "homosexual", "bisexual", "other"]
+
+    dsrSupport:
+      rightToAccess: true
+      rightToRectification: true
+      rightToErasure: true
+      rightToRestrict: true
+      rightToPortability: true
+      rightToObject: true
+
+  hipaa:
+    description: "Health Insurance Portability and Accountability Act (US)"
+    phiFields:
+      - "patient_name"
+      - "patient_id"
+      - "medical_record_number"
+      - "account_number"
+      - "certificate_license_number"
+      - "vehicle_identifiers"
+      - "device_identifiers"
+      - "web_urls"
+      - "ip_addresses"
+      - "biometric_identifiers"
+      - "full_face_photos"
+      - "any_unique_identifying_number"
+    safeHarbor:
+      dates:
+        - "admission_date"
+        - "discharge_date"
+        - "date_of_birth"
+        - "date_of_death"
+        - "service_dates"
+      ageOver89: "aggregate"
+      geography:
+        - "street_address"
+        - "city"
+        - "state"
+        - "zip_code"
+        - "county"
+        - "coordinates"
+    rules:
+      - field: "patient_name"
+        mode: "synthetic"
+        generator: "fullName"
+      - field: "medical_record_number"
+        mode: "deterministic"
+        prefix: "MRN"
+      - field: "date_of_birth"
+        mode: "random"
+        range:
+          min: "1920-01-01"
+          max: "2010-12-31"
+      - field: "zip_code"
+        mode: "format-preserving"
+        template: "{{random:5}}"
+      - field: "diagnosis_codes"
+        mode: "synthetic"
+        generator: "icd10"
+      - field: "procedure_codes"
+        mode: "synthetic"
+        generator: "cpt"
+
+  pci_dss:
+    description: "Payment Card Industry Data Security Standard"
+    cardholderData:
+      - "pan"
+      - "cardholder_name"
+      - "expiration_date"
+      - "service_code"
+    sensitiveAuthData:
+      - "cvv"
+      - "cvc"
+      - "cavv"
+      - "pin"
+      - "pin_block"
+    rules:
+      - field: "pan"
+        mode: "format-preserving"
+        template: "{{luhn:16}}"
+        validation: "luhn"
+      - field: "cardholder_name"
+        mode: "synthetic"
+        generator: "fullName"
+      - field: "expiration_date"
+        mode: "random"
+        range:
+          min: "2024-01"
+          max: "2030-12"
+        format: "MM/YY"
+      - field: "cvv"
+        mode: "format-preserving"
+        template: "{{random:3}}"
+      - field: "service_code"
+        mode: "constant"
+        value: "101"
+
+  ccpa:
+    description: "California Consumer Privacy Act"
+    personalInfoCategories:
+      - "identifiers"
+      - "personal_info"
+      - "protected_classification"
+      - "commercial_info"
+      - "biometric_info"
+      - "internet_activity"
+      - "geolocation"
+      - "audio_visual"
+      - "professional_employment"
+      - "education"
+      - "inferences"
+    rules:
+      - field: "driver_license"
+        mode: "format-preserving"
+        template: "D{{random:7}}"
+      - field: "passport_number"
+        mode: "format-preserving"
+        template: "{{random:9}}"
+      - field: "geolocation"
+        mode: "random"
+        boundingBox:
+          minLat: 32.5
+          maxLat: 42.0
+          minLng: -124.5
+          maxLng: -114.0
+      - field: "browsing_history"
+        mode: "null"
+      - field: "inferences"
+        mode: "null"
+
+  sox:
+    description: "Sarbanes-Oxley Act"
+    financialFields:
+      - "account_number"
+      - "routing_number"
+      - "transaction_amount"
+      - "balance"
+      - "ssn"
+      - "ein"
+    rules:
+      - field: "account_number"
+        mode: "format-preserving"
+        template: "{{random:10}}"
+      - field: "routing_number"
+        mode: "format-preserving"
+        template: "{{aba:9}}"
+        validation: "aba"
+      - field: "transaction_amount"
+        mode: "random"
+        range:
+          min: 0.01
+          max: 1000000.00
+        precision: 2
+      - field: "ein"
+        mode: "format-preserving"
+        template: "{{random:2}}-{{random:7}}"
+
+# Field-Level Rules (Auto-Discovery + Explicit)
+fieldRules:
+  # Direct Identifiers
+  - pattern: "^.*email$"
+    mode: "format-preserving"
+    template: "user{{index}}@example.com"
+    regulations: ["gdpr", "ccpa"]
+
+  - pattern: "^.*phone.*$"
+    mode: "format-preserving"
+    template: "+1-555-{{random:3}}-{{random:4}}"
+    regulations: ["gdpr", "ccpa"]
+
+  - pattern: "^.*ssn$"
+    mode: "format-preserving"
+    template: "{{random:3}}-{{random:2}}-{{random:4}}"
+    validation: "luhn"
+    regulations: ["gdpr", "ccpa", "sox"]
+
+  - pattern: "^.*passport.*$"
+    mode: "format-preserving"
+    template: "{{random:9}}"
+    regulations: ["gdpr", "ccpa"]
+
+  - pattern: "^.*driver_license$"
+    mode: "format-preserving"
+    template: "D{{random:7}}"
+    regulations: ["ccpa"]
+
+  - pattern: "^.*national_id$"
+    mode: "format-preserving"
+    template: "{{random:11}}"
+    regulations: ["gdpr"]
+
+  # Names
+  - pattern: "^.*first_name$"
+    mode: "synthetic"
+    generator: "firstName"
+    regulations: ["gdpr", "hipaa", "ccpa"]
+
+  - pattern: "^.*last_name$"
+    mode: "synthetic"
+    generator: "lastName"
+    regulations: ["gdpr", "hipaa", "ccpa"]
+
+  - pattern: "^.*full_name$"
+    mode: "synthetic"
+    generator: "fullName"
+    regulations: ["gdpr", "hipaa", "ccpa"]
+
+  - pattern: "^.*patient_name$"
+    mode: "synthetic"
+    generator: "fullName"
+    regulations: ["hipaa"]
+
+  # Addresses
+  - pattern: "^.*address.*$"
+    mode: "synthetic"
+    generator: "streetAddress"
+    regulations: ["gdpr", "hipaa", "ccpa"]
+
+  - pattern: "^.*city$"
+    mode: "synthetic"
+    generator: "city"
+    regulations: ["hipaa"]
+
+  - pattern: "^.*state$"
+    mode: "synthetic"
+    generator: "state"
+    regulations: ["hipaa"]
+
+  - pattern: "^.*zip_code$"
+    mode: "format-preserving"
+    template: "{{random:5}}"
+    regulations: ["hipaa", "ccpa"]
+
+  - pattern: "^.*country$"
+    mode: "constant"
+    value: "USA"
+    regulations: ["hipaa"]
+
+  # Financial
+  - pattern: "^.*pan$"
+    mode: "format-preserving"
+    template: "{{luhn:16}}"
+    validation: "luhn"
+    regulations: ["pci_dss"]
+
+  - pattern: "^.*credit_card$"
+    mode: "format-preserving"
+    template: "{{luhn:16}}"
+    validation: "luhn"
+    regulations: ["pci_dss"]
+
+  - pattern: "^.*cvv$"
+    mode: "format-preserving"
+    template: "{{random:3}}"
+    regulations: ["pci_dss"]
+
+  - pattern: "^.*bank_account$"
+    mode: "format-preserving"
+    template: "{{random:12}}"
+    regulations: ["sox", "gdpr"]
+
+  - pattern: "^.*routing_number$"
+    mode: "format-preserving"
+    template: "{{aba:9}}"
+    validation: "aba"
+    regulations: ["sox"]
+
+  - pattern: "^.*swift_bic$"
+    mode: "format-preserving"
+    template: "{{random:4}}{{random:2}}{{random:2}}{{random:3}}"
+    regulations: ["sox"]
+
+  # Dates
+  - pattern: "^.*date_of_birth$"
+    mode: "random"
+    range:
+      min: "1920-01-01"
+      max: "2010-12-31"
+    regulations: ["gdpr", "hipaa", "ccpa"]
+
+  - pattern: "^.*dob$"
+    mode: "random"
+    range:
+      min: "1920-01-01"
+      max: "2010-12-31"
+    regulations: ["gdpr", "hipaa", "ccpa"]
+
+  - pattern: "^.*admission_date$"
+    mode: "random"
+    range:
+      min: "2020-01-01"
+      max: "2024-12-31"
+    regulations: ["hipaa"]
+
+  - pattern: "^.*discharge_date$"
+    mode: "random"
+    range:
+      min: "2020-01-01"
+      max: "2024-12-31"
+    regulations: ["hipaa"]
+
+  # Technical Identifiers
+  - pattern: "^.*ip_address$"
+    mode: "format-preserving"
+    template: "192.168.{{random:1}}.{{random:1}}"
+    regulations: ["gdpr", "hipaa", "ccpa"]
+
+  - pattern: "^.*mac_address$"
+    mode: "format-preserving"
+    template: "{{random:2}}:{{random:2}}:{{random:2}}:{{random:2}}:{{random:2}}:{{random:2}}"
+    regulations: ["gdpr"]
+
+  - pattern: "^.*device_id$"
+    mode: "deterministic"
+    prefix: "DEV"
+    regulations: ["gdpr", "hipaa", "ccpa"]
+
+  - pattern: "^.*session_id$"
+    mode: "random"
+    length: 32
+    charset: "alphanumeric"
+    regulations: ["gdpr"]
+
+  # Health/Medical
+  - pattern: "^.*diagnosis.*$"
+    mode: "synthetic"
+    generator: "icd10"
+    regulations: ["hipaa", "gdpr"]
+
+  - pattern: "^.*procedure.*$"
+    mode: "synthetic"
+    generator: "cpt"
+    regulations: ["hipaa", "gdpr"]
+
+  - pattern: "^.*medication.*$"
+    mode: "synthetic"
+    generator: "rxnorm"
+    regulations: ["hipaa", "gdpr"]
+
+  - pattern: "^.*mrn$"
+    mode: "deterministic"
+    prefix: "MRN"
+    regulations: ["hipaa"]
+
+  - pattern: "^.*medical_record_number$"
+    mode: "deterministic"
+    prefix: "MRN"
+    regulations: ["hipaa"]
+
+  # Employment
+  - pattern: "^.*employee_id$"
+    mode: "deterministic"
+    prefix: "EMP"
+    regulations: ["gdpr", "ccpa", "sox"]
+
+  - pattern: "^.*salary$"
+    mode: "random"
+    range:
+      min: 30000
+      max: 200000
+    regulations: ["gdpr", "ccpa", "sox"]
+
+  - pattern: "^.*performance_rating$"
+    mode: "random"
+    values: ["exceeds", "meets", "needs_improvement"]
+    regulations: ["gdpr", "ccpa"]
+
+# Table-Level Rules
+tableRules:
+  - table: "users"
+    primaryKey: "id"
+    foreignKeys:
+      - "organization_id"
+    rules:
+      - field: "email"
+        mode: "format-preserving"
+        template: "user{{id}}@example.com"
+      - field: "password_hash"
+        mode: "constant"
+        value: "$2b$10$fakehashedpasswordforalldemo"
+      - field: "last_login"
+        mode: "random"
+        range:
+          min: "2024-01-01"
+          max: "2024-12-31"
+
+  - table: "patients"
+    primaryKey: "patient_id"
+    foreignKeys:
+      - "provider_id"
+      - "insurance_id"
+    rules:
+      - field: "patient_id"
+        mode: "deterministic"
+        prefix: "PAT"
+      - field: "ssn"
+        mode: "format-preserving"
+        template: "{{random:3}}-{{random:2}}-{{random:4}}"
+        validation: "luhn"
+      - field: "medical_record_number"
+        mode: "deterministic"
+        prefix: "MRN"
+
+  - table: "transactions"
+    primaryKey: "transaction_id"
+    foreignKeys:
+      - "account_id"
+      - "merchant_id"
+    rules:
+      - field: "pan"
+        mode: "format-preserving"
+        template: "{{luhn:16}}"
+        validation: "luhn"
+      - field: "amount"
+        mode: "random"
+        range:
+          min: 0.01
+          max: 5000.00
+        precision: 2
+      - field: "cvv"
+        mode: "format-preserving"
+        template: "{{random:3}}"
+      - field: "transaction_date"
+        mode: "random"
+        range:
+          min: "2024-01-01"
+          max: "2024-12-31"
+
+# Custom Generators
+generators:
+  icd10:
+    type: "weighted"
+    values:
+      - "I10"  # Essential hypertension
+      - "E11.9"  # Type 2 diabetes
+      - "J45.909"  # Asthma
+      - "M54.5"  # Low back pain
+      - "R07.9"  # Chest pain
+    weights: [0.3, 0.2, 0.15, 0.15, 0.2]
+
+  cpt:
+    type: "weighted"
+    values:
+      - "99213"  # Office visit
+      - "99214"  # Office visit extended
+      - "36415"  # Venipuncture
+      - "80053"  # Metabolic panel
+      - "93000"  # ECG
+    weights: [0.4, 0.2, 0.15, 0.15, 0.1]
+
+  rxnorm:
+    type: "weighted"
+    values:
+      - "Metformin 500mg"
+      - "Lisinopril 10mg"
+      - "Atorvastatin 20mg"
+      - "Levothyroxine 50mcg"
+      - "Amlodipine 5mg"
+    weights: [0.25, 0.2, 0.2, 0.15, 0.2]
+
+# Masking Audit
+audit:
+  enabled: true
+  logLevel: "info"
+  outputPath: "artifacts/masking/audit-{{timestamp}}.json"
+  fields:
+    - "original_field"
+    - "masked_field"
+    - "mode"
+    - "regulation"
+    - "table"
+    - "record_count"
+  retentionDays: 90
+
+# Verification
+verification:
+  enabled: true
+  checks:
+    - name: "no_pii_leakage"
+      description: "Verify no PII in masked output"
+      type: "regex_scan"
+      patterns:
+        - "\\b\\d{3}-\\d{2}-\\d{4}\\b"  # SSN
+        - "\\b\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}\\b"  # Credit card
+        - "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"  # Email
+    - name: "referential_integrity"
+      description: "Verify FK relationships preserved"
+      type: "fk_check"
+    - name: "format_preservation"
+      description: "Verify format-preserving fields valid"
+      type: "format_check"
+    - name: "distribution"
+      description: "Verify statistical distribution maintained"
+      type: "statistical"
+      fields: ["age", "salary", "transaction_amount"]

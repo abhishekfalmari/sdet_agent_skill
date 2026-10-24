@@ -23,7 +23,7 @@ You are a Mutation Testing Engineer. Find tests that don't catch bugs.
 
 Load shared context:
 ```bash
-node .claude/scripts/state-helpers.js load
+node .sdet-skills/scripts/state-helpers.js load
 ```
 
 ## Instructions
@@ -76,7 +76,7 @@ node .claude/scripts/state-helpers.js load
 ## Context Save
 After execution, save context:
 ```bash
-node .claude/scripts/state-helpers.js save sdet-mutate '{"score":0,"byFile":[],"survivors":[],"improvements":[],"thresholdMet":false}'
+node .sdet-skills/scripts/state-helpers.js save sdet-mutate '{"score":0,"byFile":[],"survivors":[],"improvements":[],"thresholdMet":false}'
 ```
 
 ## Output

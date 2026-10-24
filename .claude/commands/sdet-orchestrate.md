@@ -36,7 +36,7 @@ You are the SDET Orchestrator. Run the complete testing lifecycle with monitorin
 - **performance**: analyze → generate(performance) → validate → automate(performance) → execute → analyze-results
 
 ## Instructions
-1. **Load context**: `node .claude/scripts/state-helpers.js load`
+1. **Load context**: `node .sdet-skills/scripts/state-helpers.js load`
 2. **Handle resume** if `{{resume}}` provided:
    ```javascript
    const resumeResult = await resumeFromCheckpoint('{{resume}}');
@@ -198,16 +198,16 @@ await saveContext('sdet-orchestrate', {
   summary: finalSummary
 });
 
-// Run: node .claude/scripts/state-helpers.js save sdet-orchestrate {...}
+// Run: node .sdet-skills/scripts/state-helpers.js save sdet-orchestrate {...}
 // The state-helpers.js will persist to .claude/context/sdet-context.json
 // Also save checkpoint for resume capability
 await saveCheckpoint(runId, workflow, lastCompletedSkill, context);
 ```
 
 ## Implementation Notes
-- Use `node .claude/scripts/state-helpers.js load` to load context
-- Use `node .claude/scripts/checkpoint-helpers.js` for checkpoint/resume
-- Use `node .claude/scripts/notify-helpers.js` for notifications
+- Use `node .sdet-skills/scripts/state-helpers.js load` to load context
+- Use `node .sdet-skills/scripts/checkpoint-helpers.js` for checkpoint/resume
+- Use `node .sdet-skills/scripts/notify-helpers.js` for notifications
 - Invoke skills via subprocess: `npx claude -c "/sdet-<skill> ..."` or direct script execution
 - Implement proper signal handling (SIGINT, SIGTERM) for graceful shutdown
 - Track skill execution order and dependencies via DAG
