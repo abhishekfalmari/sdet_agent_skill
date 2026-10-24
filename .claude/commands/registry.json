@@ -1,0 +1,1448 @@
+{
+  "generatedAt": "2026-10-23T04:49:30.899Z",
+  "version": "1.0.0",
+  "skills": {
+    "sdet-accessibility": {
+      "name": "sdet-accessibility",
+      "description": "Accessibility testing (WCAG 2.1/2.2 AA/AAA)",
+      "file": "sdet-accessibility.md",
+      "arguments": [
+        {
+          "name": "level",
+          "description": "WCAG level (A, AA, AAA)",
+          "required": false,
+          "default": "AA"
+        },
+        {
+          "name": "tool",
+          "description": "Tool (axe-core, pa11y, lighthouse, tenon, custom)",
+          "required": false,
+          "default": "axe-core"
+        },
+        {
+          "name": "urls",
+          "description": "Comma-separated URLs to test (or 'auto' from env)",
+          "required": false,
+          "default": "auto"
+        },
+        {
+          "name": "includeManual",
+          "description": "Include manual test checklist",
+          "required": false,
+          "default": true
+        }
+      ]
+    },
+    "sdet-analyze-results": {
+      "name": "sdet-analyze-results",
+      "description": "Analyze results, update test cases, correlate defects",
+      "file": "sdet-analyze-results.md",
+      "arguments": [
+        {
+          "name": "createDefects",
+          "description": "Auto-create defects in Jira/GitHub for failures",
+          "required": false,
+          "default": false
+        },
+        {
+          "name": "updateExcel",
+          "description": "Update original Excel with pass/fail results",
+          "required": false,
+          "default": true
+        },
+        {
+          "name": "correlateDefects",
+          "description": "Correlate failures to requirements and defects",
+          "required": false,
+          "default": true
+        },
+        {
+          "name": "generateTrends",
+          "description": "Generate trend analysis and history",
+          "required": false,
+          "default": true
+        }
+      ]
+    },
+    "sdet-analyze": {
+      "name": "sdet-analyze",
+      "description": "Parse requirements into structured format with traceability",
+      "file": "sdet-analyze.md",
+      "arguments": [
+        {
+          "name": "source",
+          "description": "Path to requirements folder, URL, or 'clipboard'",
+          "required": false
+        },
+        {
+          "name": "format",
+          "description": "Output format (json, gherkin, markdown)",
+          "required": false,
+          "default": "json"
+        },
+        {
+          "name": "traceability",
+          "description": "Enable bidirectional traceability mapping",
+          "required": false,
+          "default": true
+        }
+      ]
+    },
+    "sdet-api-fuzz": {
+      "name": "sdet-api-fuzz",
+      "description": "API fuzzing for robustness and security",
+      "file": "sdet-api-fuzz.md",
+      "arguments": [
+        {
+          "name": "tool",
+          "description": "Fuzzing tool (restler, schemathesis, fuzzapi, custom)",
+          "required": false,
+          "default": "schemathesis"
+        },
+        {
+          "name": "mode",
+          "description": "Fuzzing mode (structure, grammar, mutation, generative, ml, stateful)",
+          "required": false,
+          "default": "generative"
+        },
+        {
+          "name": "spec",
+          "description": "API spec path (OpenAPI, GraphQL, gRPC proto)",
+          "required": false,
+          "default": "auto"
+        },
+        {
+          "name": "duration",
+          "description": "Fuzzing duration (minutes)",
+          "required": false,
+          "default": 30
+        }
+      ]
+    },
+    "sdet-audit": {
+      "name": "sdet-audit",
+      "description": "Package audit evidence for compliance audits",
+      "file": "sdet-audit.md",
+      "arguments": [
+        {
+          "name": "standard",
+          "description": "Audit standard (sox, iso27001, soc2, hipaa, gdpr, fda-21cfr11, pci-dss, custom)",
+          "required": false,
+          "default": "soc2"
+        },
+        {
+          "name": "period",
+          "description": "Audit period (quarter, year, custom range: YYYY-MM-DD:YYYY-MM-DD)",
+          "required": false,
+          "default": "quarter"
+        },
+        {
+          "name": "outputFormat",
+          "description": "Output format (zip, folder, confluence, sharepoint, s3)",
+          "required": false,
+          "default": "zip"
+        }
+      ]
+    },
+    "sdet-autoheal": {
+      "name": "sdet-autoheal",
+      "description": "Self-healing selectors and test auto-repair",
+      "file": "sdet-autoheal.md",
+      "arguments": [
+        {
+          "name": "target",
+          "description": "Heal target (selectors, assertions, waits, data, all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "mode",
+          "description": "Mode (suggest, auto-apply, dry-run)",
+          "required": false,
+          "default": "suggest"
+        },
+        {
+          "name": "confidence",
+          "description": "Minimum confidence for auto-apply (0-1)",
+          "required": false,
+          "default": 0.9
+        }
+      ]
+    },
+    "sdet-automate": {
+      "name": "sdet-automate",
+      "description": "Generate automation code from test cases",
+      "file": "sdet-automate.md",
+      "arguments": [
+        {
+          "name": "type",
+          "description": "Automation type (ui, api, security, performance, accessibility, contract, all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "framework",
+          "description": "Framework for UI (playwright, cypress, appium, detox, maestro) or API (pactum, k6, rest-assured, supertest)",
+          "required": false,
+          "default": "playwright"
+        },
+        {
+          "name": "pattern",
+          "description": "Code pattern (pom, screenplay, functional, bdd)",
+          "required": false,
+          "default": "pom"
+        },
+        {
+          "name": "language",
+          "description": "Programming language (typescript, javascript, python, java, csharp)",
+          "required": false,
+          "default": "typescript"
+        },
+        {
+          "name": "testDataStrategy",
+          "description": "Test data approach (fixture, factory, synthetic, parameterized)",
+          "required": false,
+          "default": "fixture"
+        }
+      ]
+    },
+    "sdet-backport": {
+      "name": "sdet-backport",
+      "description": "Backport tests to maintenance branches",
+      "file": "sdet-backport.md",
+      "arguments": [
+        {
+          "name": "branches",
+          "description": "Target branches (comma-separated)",
+          "required": true
+        },
+        {
+          "name": "strategy",
+          "description": "Strategy (cherry-pick, rewrite, adapter, conditional)",
+          "required": false,
+          "default": "cherry-pick"
+        },
+        {
+          "name": "fromBranch",
+          "description": "Source branch (default: main)",
+          "required": false,
+          "default": "main"
+        },
+        {
+          "name": "testPath",
+          "description": "Path to tests to backport",
+          "required": false
+        }
+      ]
+    },
+    "sdet-chaos": {
+      "name": "sdet-chaos",
+      "description": "Design and execute chaos engineering experiments",
+      "file": "sdet-chaos.md",
+      "arguments": [
+        {
+          "name": "tool",
+          "description": "Chaos tool (litmus, gremlin, chaos-mesh, k6-chaos, custom)",
+          "required": false,
+          "default": "litmus"
+        },
+        {
+          "name": "scope",
+          "description": "Experiment scope (pod, node, network, dns, time, io, cpu, memory, all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "hypothesis",
+          "description": "Experiment hypothesis (free text)",
+          "required": false
+        },
+        {
+          "name": "blastRadius",
+          "description": "Blast radius limit (namespace, label selector, percentage)",
+          "required": false,
+          "default": "test"
+        }
+      ]
+    },
+    "sdet-compliance": {
+      "name": "sdet-compliance",
+      "description": "Regulatory compliance testing (GDPR, HIPAA, PCI, SOX, FDA, custom)",
+      "file": "sdet-compliance.md",
+      "arguments": [
+        {
+          "name": "regulation",
+          "description": "Regulation (gdpr, hipaa, pci-dss, sox, fda-21cfr11, iso27001, soc2, custom)",
+          "required": false,
+          "default": "gdpr"
+        },
+        {
+          "name": "evidence",
+          "description": "Generate audit evidence package",
+          "required": false,
+          "default": true
+        },
+        {
+          "name": "scope",
+          "description": "Scope (full, delta, specific-control)",
+          "required": false,
+          "default": "full"
+        }
+      ]
+    },
+    "sdet-contract": {
+      "name": "sdet-contract",
+      "description": "Consumer-driven contract testing (Pact, Spring Cloud Contract)",
+      "file": "sdet-contract.md",
+      "arguments": [
+        {
+          "name": "framework",
+          "description": "Contract framework (pact, spring-cloud-contract, pactflow, custom)",
+          "required": false,
+          "default": "pact"
+        },
+        {
+          "name": "role",
+          "description": "Role (consumer, provider, both, broker)",
+          "required": false,
+          "default": "both"
+        },
+        {
+          "name": "brokerUrl",
+          "description": "Pact Broker URL (for pactflow/pact-broker)",
+          "required": false
+        },
+        {
+          "name": "publish",
+          "description": "Publish contracts to broker",
+          "required": false,
+          "default": true
+        }
+      ]
+    },
+    "sdet-coverage": {
+      "name": "sdet-coverage",
+      "description": "Analyze test coverage across code, requirements, risks",
+      "file": "sdet-coverage.md",
+      "arguments": [
+        {
+          "name": "type",
+          "description": "Coverage type (code, requirement, risk, branch, path, mutation, all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "threshold",
+          "description": "Minimum coverage thresholds (code,branch,requirement,risk,mutation)",
+          "required": false,
+          "default": "code:80,branch:70,requirement:100,risk:90,mutation:60"
+        },
+        {
+          "name": "format",
+          "description": "Report format (html, json, cobertura, sonarqube, excel, all)",
+          "required": false,
+          "default": "all"
+        }
+      ]
+    },
+    "sdet-dashboard": {
+      "name": "sdet-dashboard",
+      "description": "Generate living documentation from tests",
+      "file": "sdet-dashboard.md",
+      "arguments": [
+        {
+          "name": "format",
+          "description": "Output format (html, confluence, notion, gitbook, markdown, allure, all)",
+          "required": false,
+          "default": "html"
+        },
+        {
+          "name": "include",
+          "description": "Sections (requirements, tests, results, coverage, defects, architecture, all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "deploy",
+          "description": "Auto-deploy to platform (github-pages, confluence, notion, gitbook, s3, none)",
+          "required": false,
+          "default": "none"
+        }
+      ]
+    },
+    "sdet-data": {
+      "name": "sdet-data",
+      "description": "Generate, manage, and version test data",
+      "file": "sdet-data.md",
+      "arguments": [
+        {
+          "name": "strategy",
+          "description": "Data strategy (synthetic, subset, clone, mask, fixture, hybrid)",
+          "required": false,
+          "default": "hybrid"
+        },
+        {
+          "name": "volume",
+          "description": "Data volume (small, medium, large, production-scale)",
+          "required": false,
+          "default": "medium"
+        },
+        {
+          "name": "entities",
+          "description": "Comma-separated entities to generate (or 'all')",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "format",
+          "description": "Output format (csv, json, sql, parquet, excel)",
+          "required": false,
+          "default": "csv"
+        }
+      ]
+    },
+    "sdet-defect": {
+      "name": "sdet-defect",
+      "description": "End-to-end defect management (create, track, verify, close)",
+      "file": "sdet-defect.md",
+      "arguments": [
+        {
+          "name": "system",
+          "description": "Defect system (jira, github, gitlab, azure, rally, custom)",
+          "required": false,
+          "default": "jira"
+        },
+        {
+          "name": "action",
+          "description": "Action (create, update, link, verify, close, bulk, report)",
+          "required": false,
+          "default": "create"
+        },
+        {
+          "name": "autoLink",
+          "description": "Auto-link to test cases and requirements",
+          "required": false,
+          "default": true
+        }
+      ]
+    },
+    "sdet-deploy": {
+      "name": "sdet-deploy",
+      "description": "Generate CI/CD pipeline configuration",
+      "file": "sdet-deploy.md",
+      "arguments": [
+        {
+          "name": "platform",
+          "description": "CI/CD platform (github-actions, gitlab-ci, jenkins, azure-devops, circleci, bitbucket, tekton)",
+          "required": false,
+          "default": "github-actions"
+        },
+        {
+          "name": "qualityGates",
+          "description": "Enable quality gates (coverage, performance, security)",
+          "required": false,
+          "default": true
+        },
+        {
+          "name": "environments",
+          "description": "Comma-separated environments (dev,staging,production)",
+          "required": false,
+          "default": "dev,staging"
+        },
+        {
+          "name": "matrix",
+          "description": "Enable matrix testing (browsers, nodes, os)",
+          "required": false,
+          "default": true
+        }
+      ]
+    },
+    "sdet-env": {
+      "name": "sdet-env",
+      "description": "Provision and manage test environments",
+      "file": "sdet-env.md",
+      "arguments": [
+        {
+          "name": "target",
+          "description": "Target platform (k8s, docker-compose, vm, bare-metal, cloud, hybrid)",
+          "required": false,
+          "default": "k8s"
+        },
+        {
+          "name": "action",
+          "description": "Action (create, update, destroy, validate, snapshot, promote)",
+          "required": false,
+          "default": "create"
+        },
+        {
+          "name": "environment",
+          "description": "Environment name (dev, qa, staging, perf, uat, custom)",
+          "required": false,
+          "default": "qa"
+        },
+        {
+          "name": "spec",
+          "description": "Environment spec file path",
+          "required": false
+        }
+      ]
+    },
+    "sdet-estimate": {
+      "name": "sdet-estimate",
+      "description": "Estimate test effort using multiple techniques",
+      "file": "sdet-estimate.md",
+      "arguments": [
+        {
+          "name": "method",
+          "description": "Estimation method (function-point, use-case, story-point, t-shirt, expert, three-point, ml)",
+          "required": false,
+          "default": "three-point"
+        },
+        {
+          "name": "baseline",
+          "description": "Path to historical data for calibration",
+          "required": false
+        },
+        {
+          "name": "confidence",
+          "description": "Confidence level for estimates (P50, P80, P90)",
+          "required": false,
+          "default": "P80"
+        }
+      ]
+    },
+    "sdet-execute": {
+      "name": "sdet-execute",
+      "description": "Execute automation tests with orchestration",
+      "file": "sdet-execute.md",
+      "arguments": [
+        {
+          "name": "type",
+          "description": "Test type to execute (ui, api, security, performance, accessibility, contract, all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "parallel",
+          "description": "Max parallel workers",
+          "required": false,
+          "default": 4
+        },
+        {
+          "name": "retry",
+          "description": "Retry count for flaky tests",
+          "required": false,
+          "default": 2
+        },
+        {
+          "name": "shard",
+          "description": "Shard strategy (duration, count, file, size)",
+          "required": false,
+          "default": "duration"
+        },
+        {
+          "name": "timeout",
+          "description": "Global timeout in minutes",
+          "required": false,
+          "default": 60
+        },
+        {
+          "name": "environment",
+          "description": "Target environment (local, dev, staging, production)",
+          "required": false,
+          "default": "local"
+        },
+        {
+          "name": "headed",
+          "description": "Run UI tests in headed mode",
+          "required": false,
+          "default": false
+        }
+      ]
+    },
+    "sdet-explore": {
+      "name": "sdet-explore",
+      "description": "Manage exploratory testing sessions with charter-based approach",
+      "file": "sdet-explore.md",
+      "arguments": [
+        {
+          "name": "charter",
+          "description": "Session charter (area, goal, timebox)",
+          "required": true
+        },
+        {
+          "name": "technique",
+          "description": "Technique (tour, mind-map, sbet, freestyle)",
+          "required": false,
+          "default": "sbet"
+        },
+        {
+          "name": "timebox",
+          "description": "Session duration (minutes)",
+          "required": false,
+          "default": 90
+        },
+        {
+          "name": "tester",
+          "description": "Tester ID or 'auto'",
+          "required": false,
+          "default": "auto"
+        }
+      ]
+    },
+    "sdet-flake": {
+      "name": "sdet-flake",
+      "description": "Detect, quarantine, and auto-fix flaky tests",
+      "file": "sdet-flake.md",
+      "arguments": [
+        {
+          "name": "window",
+          "description": "History window (days)",
+          "required": false,
+          "default": 30
+        },
+        {
+          "name": "action",
+          "description": "Action (detect, quarantine, fix, report, all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "threshold",
+          "description": "Flake rate threshold (0-1)",
+          "required": false,
+          "default": 0.05
+        }
+      ]
+    },
+    "sdet-generate": {
+      "name": "sdet-generate",
+      "description": "Generate Excel test cases from structured requirements",
+      "file": "sdet-generate.md",
+      "arguments": [
+        {
+          "name": "template",
+          "description": "Template type (standard, api, security, performance, accessibility, mobile, exploratory, compliance, test-plan)",
+          "required": false,
+          "default": "standard"
+        },
+        {
+          "name": "includeNegative",
+          "description": "Include negative test cases",
+          "required": false,
+          "default": true
+        },
+        {
+          "name": "includeBoundary",
+          "description": "Include boundary value analysis test cases",
+          "required": false,
+          "default": true
+        },
+        {
+          "name": "includeEdgeCases",
+          "description": "Include edge case test cases",
+          "required": false,
+          "default": true
+        },
+        {
+          "name": "testDataStrategy",
+          "description": "Test data approach (synthetic, reference, masked, fixture)",
+          "required": false,
+          "default": "synthetic"
+        }
+      ]
+    },
+    "sdet-governance": {
+      "name": "sdet-governance",
+      "description": "Enforce test policies, standards, and governance",
+      "file": "sdet-governance.md",
+      "arguments": [
+        {
+          "name": "policy",
+          "description": "Policy file path or 'default'",
+          "required": false,
+          "default": "default"
+        },
+        {
+          "name": "mode",
+          "description": "Enforcement mode (advisory, warning, blocking, audit)",
+          "required": false,
+          "default": "warning"
+        },
+        {
+          "name": "fix",
+          "description": "Auto-fix safe violations",
+          "required": false,
+          "default": false
+        }
+      ]
+    },
+    "sdet-insights": {
+      "name": "sdet-insights",
+      "description": "Generate quality dashboards, trends, and executive reports",
+      "file": "sdet-insights.md",
+      "arguments": [
+        {
+          "name": "audience",
+          "description": "Audience (executive, manager, team, developer, auditor)",
+          "required": false,
+          "default": "team"
+        },
+        {
+          "name": "period",
+          "description": "Reporting period (daily, weekly, sprint, monthly, quarterly, release)",
+          "required": false,
+          "default": "sprint"
+        },
+        {
+          "name": "format",
+          "description": "Output format (grafana, html, confluence, notion, pdf, all)",
+          "required": false,
+          "default": "all"
+        }
+      ]
+    },
+    "sdet-load": {
+      "name": "sdet-load",
+      "description": "Performance load testing (load, stress, soak, spike, breakpoint)",
+      "file": "sdet-load.md",
+      "arguments": [
+        {
+          "name": "type",
+          "description": "Test type (load, stress, soak, spike, breakpoint, scalability)",
+          "required": false,
+          "default": "load"
+        },
+        {
+          "name": "tool",
+          "description": "Load tool (k6, gatling, jmeter, locust, vegeta, artillery)",
+          "required": false,
+          "default": "k6"
+        },
+        {
+          "name": "vus",
+          "description": "Virtual users",
+          "required": false,
+          "default": 100
+        },
+        {
+          "name": "duration",
+          "description": "Test duration (e.g., 5m, 30m, 1h, 24h)",
+          "required": false,
+          "default": "5m"
+        }
+      ]
+    },
+    "sdet-mask": {
+      "name": "sdet-mask",
+      "description": "Mask sensitive data for test environments",
+      "file": "sdet-mask.md",
+      "arguments": [
+        {
+          "name": "regulations",
+          "description": "Compliance targets (gdpr, hipaa, pci, ccpa, sox, custom)",
+          "required": false,
+          "default": "gdpr"
+        },
+        {
+          "name": "mode",
+          "description": "Masking mode (deterministic, random, format-preserving, encryption)",
+          "required": false,
+          "default": "deterministic"
+        },
+        {
+          "name": "source",
+          "description": "Source data path (or 'auto' from sdet-data)",
+          "required": false,
+          "default": "auto"
+        },
+        {
+          "name": "customRules",
+          "description": "Custom masking rules file path",
+          "required": false
+        }
+      ]
+    },
+    "sdet-migrate": {
+      "name": "sdet-migrate",
+      "description": "Migrate tests between frameworks (Cypress→Playwright, JUnit→TestNG, etc.)",
+      "file": "sdet-migrate.md",
+      "arguments": [
+        {
+          "name": "from",
+          "description": "Source framework",
+          "required": true
+        },
+        {
+          "name": "to",
+          "description": "Target framework",
+          "required": true
+        },
+        {
+          "name": "mode",
+          "description": "Migration mode (translate, rewrite, hybrid, validate)",
+          "required": false,
+          "default": "translate"
+        },
+        {
+          "name": "path",
+          "description": "Path to source tests",
+          "required": false
+        }
+      ]
+    },
+    "sdet-mobile": {
+      "name": "sdet-mobile",
+      "description": "Mobile test automation (native, hybrid, PWA)",
+      "file": "sdet-mobile.md",
+      "arguments": [
+        {
+          "name": "platform",
+          "description": "Target platform (ios, android, both)",
+          "required": false,
+          "default": "both"
+        },
+        {
+          "name": "framework",
+          "description": "Framework (appium, detox, xcuitest, espresso, maestro)",
+          "required": false,
+          "default": "appium"
+        },
+        {
+          "name": "device",
+          "description": "Device target (simulator, real-device, cloud, all)",
+          "required": false,
+          "default": "simulator"
+        },
+        {
+          "name": "appType",
+          "description": "App type (native, hybrid, pwa, react-native, flutter)",
+          "required": false,
+          "default": "native"
+        }
+      ]
+    },
+    "sdet-mock": {
+      "name": "sdet-mock",
+      "description": "Generate and deploy service virtualization / mock servers",
+      "file": "sdet-mock.md",
+      "arguments": [
+        {
+          "name": "tool",
+          "description": "Mock tool (wiremock, mockserver, prism, localstack, testcontainers, custom)",
+          "required": false,
+          "default": "wiremock"
+        },
+        {
+          "name": "mode",
+          "description": "Mode (record, generate, hybrid, proxy)",
+          "required": false,
+          "default": "hybrid"
+        },
+        {
+          "name": "specs",
+          "description": "API specs path (OpenAPI, AsyncAPI, Protobuf, GraphQL)",
+          "required": false,
+          "default": "auto"
+        },
+        {
+          "name": "deploy",
+          "description": "Deployment target (docker, k8s, standalone, compose)",
+          "required": false,
+          "default": "docker"
+        }
+      ]
+    },
+    "sdet-monitor": {
+      "name": "sdet-monitor",
+      "description": "Convert test cases to synthetic monitoring checks",
+      "file": "sdet-monitor.md",
+      "arguments": [
+        {
+          "name": "platform",
+          "description": "Monitoring platform (datadog, newrelic, grafana, pingdom, checkly, elastic, custom)",
+          "required": false,
+          "default": "datadog"
+        },
+        {
+          "name": "frequency",
+          "description": "Check frequency (1m, 5m, 15m, 30m, 1h, 6h, 12h, 24h)",
+          "required": false,
+          "default": "5m"
+        },
+        {
+          "name": "locations",
+          "description": "Check locations (comma-separated: aws:us-east-1,aws:eu-west-1,gcp:us-central1,azure:eastus)",
+          "required": false,
+          "default": "aws:us-east-1,aws:eu-west-1"
+        },
+        {
+          "name": "testTypes",
+          "description": "Test types to convert (api, ui, multi-step, all)",
+          "required": false,
+          "default": "all"
+        }
+      ]
+    },
+    "sdet-mutate": {
+      "name": "sdet-mutate",
+      "description": "Mutation testing to measure test effectiveness",
+      "file": "sdet-mutate.md",
+      "arguments": [
+        {
+          "name": "tool",
+          "description": "Mutation tool (stryker, pitest, mutmut, infection, mull)",
+          "required": false,
+          "default": "stryker"
+        },
+        {
+          "name": "mutators",
+          "description": "Mutators to apply (defaults, all, specific list)",
+          "required": false,
+          "default": "defaults"
+        },
+        {
+          "name": "threshold",
+          "description": "Minimum mutation score (0-100)",
+          "required": false,
+          "default": 80
+        }
+      ]
+    },
+    "sdet-onboard": {
+      "name": "sdet-onboard",
+      "description": "Generate onboarding guides and knowledge base from tests",
+      "file": "sdet-onboard.md",
+      "arguments": [
+        {
+          "name": "role",
+          "description": "Target role (sdet, qa, dev, pm, new-hire, contractor)",
+          "required": false,
+          "default": "new-hire"
+        },
+        {
+          "name": "depth",
+          "description": "Depth (overview, deep-dive, hands-on, reference, all)",
+          "required": false,
+          "default": "hands-on"
+        },
+        {
+          "name": "format",
+          "description": "Output format (notebook, portal, video-script, quiz, all)",
+          "required": false,
+          "default": "portal"
+        }
+      ]
+    },
+    "sdet-orchestrate": {
+      "name": "sdet-orchestrate",
+      "description": "Run full SDET pipeline with orchestration",
+      "file": "sdet-orchestrate.md",
+      "arguments": [
+        {
+          "name": "workflow",
+          "description": "Workflow to run (full, quick, ci, security, performance)",
+          "required": false,
+          "default": "full"
+        },
+        {
+          "name": "autoApprove",
+          "description": "Skip human approval gates",
+          "required": false,
+          "default": false
+        },
+        {
+          "name": "continueOnFailure",
+          "description": "Continue pipeline on skill failure",
+          "required": false,
+          "default": false
+        },
+        {
+          "name": "resume",
+          "description": "Resume from checkpoint (runId)",
+          "required": false
+        },
+        {
+          "name": "notify",
+          "description": "Send notifications on events",
+          "required": false,
+          "default": true
+        }
+      ]
+    },
+    "sdet-perf-profile": {
+      "name": "sdet-perf-profile",
+      "description": "Deep performance profiling and root cause analysis",
+      "file": "sdet-perf-profile.md",
+      "arguments": [
+        {
+          "name": "profiler",
+          "description": "Profiler (py-spy, perf, async-profiler, datadog, newrelic, custom)",
+          "required": false,
+          "default": "async-profiler"
+        },
+        {
+          "name": "target",
+          "description": "Target (cpu, memory, gc, lock, io, allocation, all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "duration",
+          "description": "Profiling duration (seconds)",
+          "required": false,
+          "default": 60
+        }
+      ]
+    },
+    "sdet-plan": {
+      "name": "sdet-plan",
+      "description": "Generate comprehensive test plan/strategy documents",
+      "file": "sdet-plan.md",
+      "arguments": [
+        {
+          "name": "type",
+          "description": "Plan type (master, phase, release, sprint, hotfix)",
+          "required": false,
+          "default": "master"
+        },
+        {
+          "name": "standard",
+          "description": "Standard to follow (IEEE 829, ISO 29119, custom)",
+          "required": false,
+          "default": "ieee829"
+        },
+        {
+          "name": "includeRisk",
+          "description": "Include risk analysis section",
+          "required": false,
+          "default": true
+        },
+        {
+          "name": "outputFormat",
+          "description": "Output format (markdown, html, pdf, confluence)",
+          "required": false,
+          "default": "markdown"
+        }
+      ]
+    },
+    "sdet-predict": {
+      "name": "sdet-predict",
+      "description": "Predict test failures and prioritize using ML",
+      "file": "sdet-predict.md",
+      "arguments": [
+        {
+          "name": "model",
+          "description": "Model to use (failure-predictor, test-prioritizer, custom)",
+          "required": false,
+          "default": "failure-predictor"
+        },
+        {
+          "name": "horizon",
+          "description": "Prediction horizon (next-run, next-day, next-week, next-sprint)",
+          "required": false,
+          "default": "next-run"
+        },
+        {
+          "name": "threshold",
+          "description": "Probability threshold for high-risk (0-1)",
+          "required": false,
+          "default": 0.7
+        }
+      ]
+    },
+    "sdet-prioritize": {
+      "name": "sdet-prioritize",
+      "description": "Prioritize tests by risk, value, and execution cost",
+      "file": "sdet-prioritize.md",
+      "arguments": [
+        {
+          "name": "algorithm",
+          "description": "Prioritization algorithm (risk, value, cost, hybrid, ml)",
+          "required": false,
+          "default": "hybrid"
+        },
+        {
+          "name": "budget",
+          "description": "Execution budget (time in minutes or test count)",
+          "required": false
+        },
+        {
+          "name": "weights",
+          "description": "Weight configuration for hybrid (risk,value,cost,coverage)",
+          "required": false,
+          "default": "risk:0.4,value:0.3,cost:0.2,coverage:0.1"
+        }
+      ]
+    },
+    "sdet-release": {
+      "name": "sdet-release",
+      "description": "Release validation and go/no-go decision gate",
+      "file": "sdet-release.md",
+      "arguments": [
+        {
+          "name": "criteria",
+          "description": "Go/no-go criteria file path",
+          "required": false
+        },
+        {
+          "name": "environment",
+          "description": "Environment to validate (staging, preprod, production)",
+          "required": false,
+          "default": "staging"
+        },
+        {
+          "name": "releaseType",
+          "description": "Release type (major, minor, patch, hotfix, rc)",
+          "required": false,
+          "default": "minor"
+        }
+      ]
+    },
+    "sdet-report": {
+      "name": "sdet-report",
+      "description": "Generate executive and technical test reports",
+      "file": "sdet-report.md",
+      "arguments": [
+        {
+          "name": "type",
+          "description": "Report type (executive, technical, release, sprint, incident, compliance, custom)",
+          "required": false,
+          "default": "executive"
+        },
+        {
+          "name": "format",
+          "description": "Format (pdf, html, pptx, docx, markdown, confluence, notion, all)",
+          "required": false,
+          "default": "pdf"
+        },
+        {
+          "name": "period",
+          "description": "Reporting period (daily, weekly, sprint, monthly, quarterly, release, custom)",
+          "required": false,
+          "default": "sprint"
+        },
+        {
+          "name": "template",
+          "description": "Custom template path",
+          "required": false
+        }
+      ]
+    },
+    "sdet-retro": {
+      "name": "sdet-retro",
+      "description": "Data-driven sprint retrospective for quality",
+      "file": "sdet-retro.md",
+      "arguments": [
+        {
+          "name": "sprint",
+          "description": "Sprint ID or 'current'",
+          "required": false,
+          "default": "current"
+        },
+        {
+          "name": "format",
+          "description": "Output format (report, slides, miro, mural, action-items, all)",
+          "required": false,
+          "default": "report"
+        },
+        {
+          "name": "lookback",
+          "description": "Number of sprints to analyze",
+          "required": false,
+          "default": 3
+        }
+      ]
+    },
+    "sdet-review": {
+      "name": "sdet-review",
+      "description": "Manage test case peer review process",
+      "file": "sdet-review.md",
+      "arguments": [
+        {
+          "name": "mode",
+          "description": "Review mode (async, sync, gated, checklist)",
+          "required": false,
+          "default": "async"
+        },
+        {
+          "name": "reviewers",
+          "description": "Comma-separated reviewer IDs or 'auto'",
+          "required": false,
+          "default": "auto"
+        },
+        {
+          "name": "checklist",
+          "description": "Custom checklist file path",
+          "required": false
+        }
+      ]
+    },
+    "sdet-rollback": {
+      "name": "sdet-rollback",
+      "description": "Configure and execute automated rollbacks",
+      "file": "sdet-rollback.md",
+      "arguments": [
+        {
+          "name": "trigger",
+          "description": "Trigger (slo-breach, error-budget, manual, health-check, anomaly)",
+          "required": false,
+          "default": "slo-breach"
+        },
+        {
+          "name": "strategy",
+          "description": "Rollout strategy (blue-green, canary, rolling, feature-flag)",
+          "required": false,
+          "default": "blue-green"
+        },
+        {
+          "name": "autoExecute",
+          "description": "Auto-execute rollback on trigger",
+          "required": false,
+          "default": false
+        }
+      ]
+    },
+    "sdet-rootcause": {
+      "name": "sdet-rootcause",
+      "description": "Automated root cause analysis from test failures",
+      "file": "sdet-rootcause.md",
+      "arguments": [
+        {
+          "name": "source",
+          "description": "Data source (logs, traces, metrics, screenshots, all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "depth",
+          "description": "Analysis depth (symptom, contributing, root, systemic)",
+          "required": false,
+          "default": "root"
+        },
+        {
+          "name": "timeWindow",
+          "description": "Time window before failure (minutes)",
+          "required": false,
+          "default": 30
+        }
+      ]
+    },
+    "sdet-security": {
+      "name": "sdet-security",
+      "description": "Security testing (SAST, DAST, IAST, SCA, secrets, compliance)",
+      "file": "sdet-security.md",
+      "arguments": [
+        {
+          "name": "type",
+          "description": "Security type (sast, dast, iast, sca, secrets, container, iac, all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "standard",
+          "description": "Standard (owasp-top10, owasp-api, cwe, sans, nist, custom)",
+          "required": false,
+          "default": "owasp-top10"
+        },
+        {
+          "name": "severity",
+          "description": "Minimum severity (critical, high, medium, low, info)",
+          "required": false,
+          "default": "medium"
+        }
+      ]
+    },
+    "sdet-seed": {
+      "name": "sdet-seed",
+      "description": "Seed databases and manage test state",
+      "file": "sdet-seed.md",
+      "arguments": [
+        {
+          "name": "db",
+          "description": "Database type (postgres, mysql, sqlserver, oracle, mongodb, dynamodb, redis, all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "strategy",
+          "description": "Seeding strategy (truncate, transaction-rollback, snapshot, flyway, liquibase)",
+          "required": false,
+          "default": "transaction-rollback"
+        },
+        {
+          "name": "dataSource",
+          "description": "Data source (sdet-data, custom-file, auto)",
+          "required": false,
+          "default": "sdet-data"
+        },
+        {
+          "name": "parallel",
+          "description": "Parallel seeding (true/false)",
+          "required": false,
+          "default": true
+        }
+      ]
+    },
+    "sdet-service-map": {
+      "name": "sdet-service-map",
+      "description": "Discover service topology and test impact analysis",
+      "file": "sdet-service-map.md",
+      "arguments": [
+        {
+          "name": "source",
+          "description": "Discovery source (traces, mesh, k8s, api-gateway, manual)",
+          "required": false,
+          "default": "traces"
+        },
+        {
+          "name": "action",
+          "description": "Action (discover, map, impact, visualize, monitor, all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "outputFormat",
+          "description": "Output format (mermaid, graphviz, d3, json, cytoscape)",
+          "required": false,
+          "default": "mermaid"
+        }
+      ]
+    },
+    "sdet-trace": {
+      "name": "sdet-trace",
+      "description": "Generate and maintain full bidirectional traceability",
+      "file": "sdet-trace.md",
+      "arguments": [
+        {
+          "name": "format",
+          "description": "Output format (matrix, graph, json, excel, confluence, jira)",
+          "required": false,
+          "default": "matrix"
+        },
+        {
+          "name": "direction",
+          "description": "Trace direction (forward, backward, both, impact)",
+          "required": false,
+          "default": "both"
+        },
+        {
+          "name": "includeOrphans",
+          "description": "Include orphaned items (no links)",
+          "required": false,
+          "default": true
+        }
+      ]
+    },
+    "sdet-triage": {
+      "name": "sdet-triage",
+      "description": "Automated defect triage and routing",
+      "file": "sdet-triage.md",
+      "arguments": [
+        {
+          "name": "model",
+          "description": "Triage model (rule-based, ml, hybrid)",
+          "required": false,
+          "default": "hybrid"
+        },
+        {
+          "name": "autoAssign",
+          "description": "Auto-assign to team/owner",
+          "required": false,
+          "default": true
+        },
+        {
+          "name": "sla",
+          "description": "SLA config file path",
+          "required": false
+        }
+      ]
+    },
+    "sdet-ui": {
+      "name": "sdet-ui",
+      "description": "Visual regression testing across browsers/devices",
+      "file": "sdet-ui.md",
+      "arguments": [
+        {
+          "name": "tool",
+          "description": "Visual testing tool (percy, chromatic, playwright-visual, applitools, backstop)",
+          "required": false,
+          "default": "playwright-visual"
+        },
+        {
+          "name": "baseline",
+          "description": "Baseline branch/tag for comparison",
+          "required": false,
+          "default": "main"
+        },
+        {
+          "name": "viewports",
+          "description": "Comma-separated viewports (desktop,tablet,mobile,custom)",
+          "required": false,
+          "default": "desktop,tablet,mobile"
+        },
+        {
+          "name": "threshold",
+          "description": "Diff threshold percentage (0-100)",
+          "required": false,
+          "default": 0.1
+        }
+      ]
+    },
+    "sdet-usability": {
+      "name": "sdet-usability",
+      "description": "Plan, recruit, conduct, and analyze usability tests",
+      "file": "sdet-usability.md",
+      "arguments": [
+        {
+          "name": "method",
+          "description": "Method (moderated, unmoderated, remote, in-person, guerrilla, five-second)",
+          "required": false,
+          "default": "remote-unmoderated"
+        },
+        {
+          "name": "participants",
+          "description": "Number of participants",
+          "required": false,
+          "default": 5
+        },
+        {
+          "name": "tasks",
+          "description": "Task file path or 'auto' from requirements",
+          "required": false,
+          "default": "auto"
+        },
+        {
+          "name": "platform",
+          "description": "Platform (usertesting, maze, lookback, usertesting, custom)",
+          "required": false,
+          "default": "usertesting"
+        }
+      ]
+    },
+    "sdet-validate": {
+      "name": "sdet-validate",
+      "description": "Validate test cases for completeness and traceability",
+      "file": "sdet-validate.md",
+      "arguments": [
+        {
+          "name": "file",
+          "description": "Path to test case Excel file",
+          "required": false
+        },
+        {
+          "name": "strict",
+          "description": "Strict validation mode (fail on warnings)",
+          "required": false,
+          "default": false
+        },
+        {
+          "name": "checks",
+          "description": "Comma-separated checks to run (schema, traceability, coverage, quality, duplicates, all)",
+          "required": false,
+          "default": "all"
+        }
+      ]
+    }
+  }
+}

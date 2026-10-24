@@ -1,0 +1,59 @@
+{
+  "model": "test-prioritizer",
+  "version": "1.0.0",
+  "format": "ONNX",
+  "framework": "LambdaMART (Learning to Rank)",
+  "convertedFrom": "LightGBM 4.1.0 (ranking objective)",
+  "convertedAt": "2026-10-22T00:00:00Z",
+  "inputSchema": {
+    "name": "input",
+    "type": "float32",
+    "shape": [null, 20],
+    "features": [
+      "test_id_hash",
+      "requirement_criticality",
+      "code_coverage_uniqueness",
+      "historical_defect_detection_rate",
+      "execution_time_seconds",
+      "flakiness_score",
+      "maintenance_burden_score",
+      "code_change_proximity",
+      "dependency_risk_score",
+      "requirement_coverage_gaps",
+      "security_relevance",
+      "performance_relevance",
+      "business_impact_score",
+      "user_facing_flag",
+      "regression_risk_score",
+      "last_run_age_days",
+      "failure_recency_score",
+      "author_familiarity",
+      "test_type_priority",
+      "parallel_group_size"
+    ]
+  },
+  "outputSchema": {
+    "name": "output",
+    "type": "float32",
+    "shape": [null, 1],
+    "description": "Priority score (higher = run first)"
+  },
+  "rankingMetrics": {
+    "ndcg@10": 0.82,
+    "ndcg@20": 0.78,
+    "map": 0.75,
+    "defect_detection_rate@20pct": 0.68
+  },
+  "budgetStrategies": {
+    "time": "Select tests until cumulative time <= budget",
+    "count": "Select top N tests by priority score",
+    "hybrid": "Optimize for defect detection per unit time"
+  },
+  "trainingData": {
+    "period": "2026-07-01 to 2026-10-01",
+    "projects": 15,
+    "testSuites": 450,
+    "totalTests": 125000
+  },
+  "note": "This is a placeholder. Replace with actual trained model from ml-models release."
+}

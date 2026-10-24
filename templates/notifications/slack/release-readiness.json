@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2007/schema#",
+  "title": "SDET Release Readiness",
+  "type": "object",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "{{#if ready}}🟢{{else}}🔴{{/if}} Release {{#if ready}}Ready{{else}}Not Ready{{/if}}",
+        "emoji": true
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Release:*\n{{releaseName}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Version:*\n{{version}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Environment:*\n{{environment}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Decision:*\n{{#if ready}}:white_check_mark: GO{{else}}:x: NO-GO{{/if}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Evaluated:*\n{{evaluatedAt}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Evaluated By:*\n{{evaluatedBy}}"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Rationale:*\n{{rationale}}"
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Quality Gates:*\n{{#each qualityGates}}{{#if passed}}:white_check_mark:{{else}}:x:{{/if}} {{name}} ({{actual}}/{{threshold}}){{/each}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Defects:*\nCritical: {{defects.critical}} | High: {{defects.high}} | Medium: {{defects.medium}} | Low: {{defects.low}}"
+        }
+      ]
+    },
+    {{#if conditions}}
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Conditions:*\n{{#each conditions}}• {{this}}{{/each}}"
+      }
+    },
+    {{/if}}
+    {{#if risks}}
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Risks:*\n{{#each risks}}• {{this}}{{/each}}"
+      }
+    },
+    {{/if}}
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Release Report",
+            "emoji": true
+          },
+          "url": "{{reportUrl}}",
+          "style": "primary"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Test Results",
+            "emoji": true
+          },
+          "url": "{{resultsUrl}}"
+        }
+      ]
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "SDET Skills • Release Management • {{timestamp}}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,377 @@
+# Test Environments Configuration
+# Used by sdet-env, sdet-execute, sdet-deploy, sdet-mock
+# Place at: templates/configs/test-environments.yaml
+
+version: "1.0"
+description: "Test environment definitions and provisioning configs"
+
+# Environment Catalog
+environments:
+  # Local Development
+  - name: "local"
+    type: "docker-compose"
+    description: "Local development environment"
+    provisioning:
+      tool: "docker-compose"
+      file: "docker-compose.test.yml"
+      timeout: 120
+    services:
+      - name: "app"
+        image: "myapp:latest"
+        ports: ["3000:3000"]
+        env:
+          NODE_ENV: "test"
+          DB_HOST: "postgres"
+        healthCheck: "http://localhost:3000/health"
+      - name: "postgres"
+        image: "postgres:15"
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_DB: "testdb"
+          POSTGRES_USER: "test"
+          POSTGRES_PASSWORD: "test"
+        healthCheck: "pg_isready -U test"
+      - name: "redis"
+        image: "redis:7"
+        ports: ["6379:6379"]
+    data:
+      strategy: "seed"
+      seedScript: "scripts/seed-local.js"
+    mocks:
+      - name: "payment-gateway"
+        tool: "wiremock"
+        port: 8080
+        mappings: "mocks/payment-gateway/"
+    access:
+      url: "http://localhost:3000"
+      apiUrl: "http://localhost:3000/api"
+      credentials: {}
+
+  # CI Environment (Ephemeral)
+  - name: "ci"
+    type: "github-actions"
+    description: "Ephemeral CI environment"
+    provisioning:
+      tool: "github-actions"
+      runner: "ubuntu-latest"
+      timeout: 60
+    services:
+      - name: "app"
+        image: "${{ github.repository }}:test"
+        ports: ["3000:3000"]
+        env:
+          NODE_ENV: "test"
+        healthCheck: "http://localhost:3000/health"
+      - name: "postgres"
+        image: "postgres:15"
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_DB: "testdb"
+          POSTGRES_USER: "test"
+          POSTGRES_PASSWORD: "test"
+        options: >-
+          --health-cmd="pg_isready -U test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    data:
+      strategy: "transaction-rollback"
+      seedScript: "scripts/seed-ci.js"
+    mocks:
+      - name: "external-apis"
+        tool: "mockserver"
+        port: 1080
+        expectations: "mocks/external-apis/"
+    access:
+      url: "http://localhost:3000"
+      apiUrl: "http://localhost:3000/api"
+      credentials: {}
+
+  # Shared QA Environment
+  - name: "qa"
+    type: "kubernetes"
+    description: "Shared QA environment in Kubernetes"
+    provisioning:
+      tool: "helm"
+      chart: "./helm/myapp"
+      namespace: "qa"
+      timeout: 300
+      values:
+        - "values.yaml"
+        - "values-qa.yaml"
+    services:
+      - name: "app"
+        replicas: 2
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        env:
+          NODE_ENV: "qa"
+        healthCheck: "/health"
+        ingress:
+          host: "qa.myapp.company.com"
+          tls: true
+      - name: "postgres"
+        type: "cloudsql"
+        instance: "qa-postgres"
+        database: "qa_db"
+      - name: "redis"
+        type: "elasticache"
+        cluster: "qa-redis"
+    data:
+      strategy: "subset"
+      source: "production"
+      subsetSize: "10%"
+      piiMasking: true
+    mocks: []
+    access:
+      url: "https://qa.myapp.company.com"
+      apiUrl: "https://qa.myapp.company.com/api"
+      credentials:
+        vaultPath: "secret/qa/myapp"
+    networking:
+      serviceMesh: "istio"
+      mtls: true
+      egress:
+        - "api.payment-gateway.com"
+        - "api.email-service.com"
+
+  # Staging Environment (Production-like)
+  - name: "staging"
+    type: "kubernetes"
+    description: "Pre-production staging environment"
+    provisioning:
+      tool: "helm"
+      chart: "./helm/myapp"
+      namespace: "staging"
+      timeout: 300
+      values:
+        - "values.yaml"
+        - "values-staging.yaml"
+    services:
+      - name: "app"
+        replicas: 3
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
+        env:
+          NODE_ENV: "staging"
+        healthCheck: "/health"
+        ingress:
+          host: "staging.myapp.company.com"
+          tls: true
+        autoscaling:
+          minReplicas: 2
+          maxReplicas: 10
+          targetCPU: 70
+      - name: "postgres"
+        type: "cloudsql"
+        instance: "staging-postgres"
+        database: "staging_db"
+        readReplicas: 1
+      - name: "redis"
+        type: "elasticache"
+        cluster: "staging-redis"
+        replicationGroup: true
+    data:
+      strategy: "clone"
+      source: "production"
+      piiMasking: true
+      refreshSchedule: "daily"
+    mocks: []
+    access:
+      url: "https://staging.myapp.company.com"
+      apiUrl: "https://staging.myapp.company.com/api"
+      credentials:
+        vaultPath: "secret/staging/myapp"
+    networking:
+      serviceMesh: "istio"
+      mtls: true
+      canary:
+        enabled: true
+        weight: 10
+    monitoring:
+      datadog: true
+      prometheus: true
+      grafanaDashboard: "staging-overview"
+
+  # Production Environment (for synthetic monitoring)
+  - name: "production"
+    type: "kubernetes"
+    description: "Production environment (read-only for testing)"
+    provisioning:
+      tool: "helm"
+      chart: "./helm/myapp"
+      namespace: "production"
+      timeout: 300
+      values:
+        - "values.yaml"
+        - "values-production.yaml"
+    services:
+      - name: "app"
+        replicas: 5
+        resources:
+          requests:
+            cpu: "2000m"
+            memory: "2Gi"
+          limits:
+            cpu: "4000m"
+            memory: "4Gi"
+        env:
+          NODE_ENV: "production"
+        healthCheck: "/health"
+        ingress:
+          host: "myapp.company.com"
+          tls: true
+        autoscaling:
+          minReplicas: 3
+          maxReplicas: 20
+          targetCPU: 60
+      - name: "postgres"
+        type: "cloudsql"
+        instance: "prod-postgres"
+        database: "prod_db"
+        readReplicas: 2
+        backupEnabled: true
+      - name: "redis"
+        type: "elasticache"
+        cluster: "prod-redis"
+        replicationGroup: true
+        multiAZ: true
+    data:
+      strategy: "none"  # No test data in production
+      note: "Synthetic monitoring only"
+    mocks: []
+    access:
+      url: "https://myapp.company.com"
+      apiUrl: "https://api.myapp.company.com"
+      credentials:
+        vaultPath: "secret/prod/myapp"
+    networking:
+      serviceMesh: "istio"
+      mtls: true
+    monitoring:
+      datadog: true
+      prometheus: true
+      grafanaDashboard: "production-overview"
+      alerting: true
+
+# Environment Promotion Rules
+promotion:
+  paths:
+    - from: "local"
+      to: "ci"
+      autoPromote: true
+      gates: ["unit-tests", "lint"]
+    - from: "ci"
+      to: "qa"
+      autoPromote: false
+      gates: ["integration-tests", "security-scan", "quality-gates"]
+      approval: "qa-lead"
+    - from: "qa"
+      to: "staging"
+      autoPromote: false
+      gates: ["e2e-tests", "performance-tests", "accessibility", "contract-tests"]
+      approval: "release-manager"
+    - from: "staging"
+      to: "production"
+      autoPromote: false
+      gates: ["release-validation", "smoke-tests", "canary-analysis"]
+      approval: "cto"
+
+# Environment Lifecycle
+lifecycle:
+  ephemeral:
+    - "local"
+    - "ci"
+  persistent:
+    - "qa"
+    - "staging"
+    - "production"
+  ttl:
+    local: "4h"
+    ci: "2h"
+    qa: "0"  # No TTL
+    staging: "0"
+    production: "0"
+  cleanup:
+    onBranchDelete: true
+    onPRClose: true
+    keepLatest: 3
+
+# Test Data per Environment
+testData:
+  local:
+    strategy: "synthetic"
+    volume: "small"
+    refresh: "on-demand"
+  ci:
+    strategy: "synthetic"
+    volume: "small"
+    refresh: "per-run"
+  qa:
+    strategy: "subset"
+    volume: "medium"
+    source: "production"
+    refresh: "daily"
+    masking: true
+  staging:
+    strategy: "clone"
+    volume: "large"
+    source: "production"
+    refresh: "daily"
+    masking: true
+  production:
+    strategy: "none"
+    note: "No test data - synthetic monitoring only"
+
+# Service Virtualization Config
+virtualization:
+  enabled: true
+  defaultTool: "wiremock"
+  environments:
+    local:
+      - "payment-gateway"
+      - "email-service"
+      - "sms-service"
+    ci:
+      - "payment-gateway"
+      - "email-service"
+      - "sms-service"
+      - "fraud-detection"
+    qa:
+      - "payment-gateway"
+      - "fraud-detection"
+    staging: []
+    production: []
+
+# Feature Flags per Environment
+featureFlags:
+  local:
+    new-checkout: true
+    dark-mode: true
+    beta-features: true
+  ci:
+    new-checkout: true
+    dark-mode: true
+    beta-features: false
+  qa:
+    new-checkout: true
+    dark-mode: true
+    beta-features: false
+  staging:
+    new-checkout: true
+    dark-mode: true
+    beta-features: false
+  production:
+    new-checkout: true
+    dark-mode: true
+    beta-features: false

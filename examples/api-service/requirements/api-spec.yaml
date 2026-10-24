@@ -1,0 +1,1563 @@
+openapi: 3.0.3
+info:
+  title: Payment Gateway API
+  version: 1.0.0
+  description: RESTful payment processing API for merchants
+  contact:
+    name: Platform Team
+    email: platform@payments.example.com
+  license:
+    name: MIT
+servers:
+  - url: https://api.payments.example.com/v1
+    description: Production
+  - url: https://api-sandbox.payments.example.com/v1
+    description: Sandbox
+  - url: http://localhost:8080/v1
+    description: Local development
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+tags:
+  - name: Payment Intents
+    description: Payment intent lifecycle management
+  - name: Payments
+    description: Payment confirmation and capture
+  - name: Refunds
+    description: Refund processing
+  - name: Customers
+    description: Customer management
+  - name: Payment Methods
+    description: Saved payment methods
+  - name: Webhooks
+    description: Webhook endpoint management
+  - name: Disputes
+    description: Dispute and chargeback handling
+  - name: Payouts
+    description: Merchant payouts
+  - name: Reports
+    description: Transaction reporting
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: "Bearer sk_live_... or sk_test_..."
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      required: [type, title, status, detail, instance]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+        traceId:
+          type: string
+
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                required: [field, message, code]
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                  code:
+                    type: string
+
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount:
+          type: integer
+          minimum: 0
+          description: Amount in minor units (cents)
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: ISO 4217 currency code
+
+    PaymentIntent:
+      type: object
+      required: [id, amount, currency, status, client_secret, created]
+      properties:
+        id:
+          type: string
+          pattern: '^pi_[a-zA-Z0-9]{24}$'
+        object:
+          type: string
+          enum: [payment_intent]
+        amount:
+          type: integer
+          minimum: 1
+        amount_capturable:
+          type: integer
+          minimum: 0
+        amount_received:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        status:
+          type: string
+          enum: [requires_payment_method, requires_confirmation, requires_action, processing, requires_capture, succeeded, canceled]
+        client_secret:
+          type: string
+          pattern: '^pi_[a-zA-Z0-9]{24}_secret_[a-zA-Z0-9]{24}$'
+        payment_method_types:
+          type: array
+          items:
+            type: string
+            enum: [card, ideal, sepa_debit, sofort, acss_debit, bacs_debit, au_becs_debit, us_bank_account]
+        payment_method:
+          type: object
+          nullable: true
+        customer:
+          type: string
+          pattern: '^cus_[a-zA-Z0-9]{14}$'
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        description:
+          type: string
+          nullable: true
+        capture_method:
+          type: string
+          enum: [automatic, manual]
+        confirmation_method:
+          type: string
+          enum: [automatic, manual]
+        next_action:
+          type: object
+          nullable: true
+        created:
+          type: integer
+          format: unix-time
+        canceled_at:
+          type: integer
+          format: unix-time
+          nullable: true
+        cancellation_reason:
+          type: string
+          enum: [duplicate, fraudulent, requested_by_customer, abandoned]
+          nullable: true
+
+    PaymentMethod:
+      type: object
+      required: [id, type, card, billing_details, customer, created]
+      properties:
+        id:
+          type: string
+          pattern: '^pm_[a-zA-Z0-9]{24}$'
+        object:
+          type: string
+          enum: [payment_method]
+        type:
+          type: string
+          enum: [card, ideal, sepa_debit, sofort, acss_debit, bacs_debit, au_becs_debit, us_bank_account]
+        card:
+          type: object
+          nullable: true
+          properties:
+            brand:
+              type: string
+              enum: [visa, mastercard, amex, discover, diners, jcb, unionpay]
+            last4:
+              type: string
+              pattern: '^\d{4}$'
+            exp_month:
+              type: integer
+              minimum: 1
+              maximum: 12
+            exp_year:
+              type: integer
+            funding:
+              type: string
+              enum: [credit, debit, prepaid, unknown]
+            country:
+              type: string
+              pattern: '^[A-Z]{2}$'
+        billing_details:
+          type: object
+          properties:
+            name:
+              type: string
+              nullable: true
+            email:
+              type: string
+              format: email
+              nullable: true
+            phone:
+              type: string
+              nullable: true
+            address:
+              type: object
+              properties:
+                line1:
+                  type: string
+                line2:
+                  type: string
+                city:
+                  type: string
+                state:
+                  type: string
+                postal_code:
+                  type: string
+                country:
+                  type: string
+                  pattern: '^[A-Z]{2}$'
+        customer:
+          type: string
+          pattern: '^cus_[a-zA-Z0-9]{14}$'
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        created:
+          type: integer
+          format: unix-time
+
+    Customer:
+      type: object
+      required: [id, email, created]
+      properties:
+        id:
+          type: string
+          pattern: '^cus_[a-zA-Z0-9]{14}$'
+        object:
+          type: string
+          enum: [customer]
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        address:
+          type: object
+          nullable: true
+          properties:
+            line1:
+              type: string
+            line2:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            postal_code:
+              type: string
+            country:
+              type: string
+              pattern: '^[A-Z]{2}$'
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        balance:
+          type: integer
+          description: Account balance in minor units
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        default_payment_method:
+          type: string
+          pattern: '^pm_[a-zA-Z0-9]{24}$'
+          nullable: true
+        invoice_settings:
+          type: object
+          properties:
+            default_payment_method:
+              type: string
+              nullable: true
+        created:
+          type: integer
+          format: unix-time
+        deleted:
+          type: boolean
+          default: false
+
+    Refund:
+      type: object
+      required: [id, amount, currency, status, charge, created]
+      properties:
+        id:
+          type: string
+          pattern: '^re_[a-zA-Z0-9]{24}$'
+        object:
+          type: string
+          enum: [refund]
+        amount:
+          type: integer
+          minimum: 1
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        status:
+          type: string
+          enum: [pending, succeeded, failed, canceled]
+        charge:
+          type: string
+          pattern: '^ch_[a-zA-Z0-9]{24}$'
+        payment_intent:
+          type: string
+          pattern: '^pi_[a-zA-Z0-9]{24}$'
+          nullable: true
+        reason:
+          type: string
+          enum: [duplicate, fraudulent, requested_by_customer]
+          nullable: true
+        receipt_number:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        created:
+          type: integer
+          format: unix-time
+
+    WebhookEndpoint:
+      type: object
+      required: [id, url, events, status, created]
+      properties:
+        id:
+          type: string
+          pattern: '^we_[a-zA-Z0-9]{24}$'
+        object:
+          type: string
+          enum: [webhook_endpoint]
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [enabled, disabled]
+        description:
+          type: string
+          nullable: true
+        secret:
+          type: string
+          description: Signing secret (only returned on create)
+        created:
+          type: integer
+          format: unix-time
+
+    Event:
+      type: object
+      required: [id, type, data, created]
+      properties:
+        id:
+          type: string
+          pattern: '^evt_[a-zA-Z0-9]{24}$'
+        object:
+          type: string
+          enum: [event]
+        type:
+          type: string
+          enum: [payment_intent.succeeded, payment_intent.failed, payment_intent.canceled, charge.refunded, customer.created, customer.updated, customer.deleted, payment_method.attached, payment_method.detached, dispute.created, dispute.updated, dispute.closed, payout.paid, payout.failed]
+        data:
+          type: object
+          properties:
+            object:
+              oneOf:
+                - $ref: '#/components/schemas/PaymentIntent'
+                - $ref: '#/components/schemas/Refund'
+                - $ref: '#/components/schemas/Customer'
+                - $ref: '#/components/schemas/PaymentMethod'
+        created:
+          type: integer
+          format: unix-time
+
+    Dispute:
+      type: object
+      required: [id, amount, currency, status, reason, charge, created]
+      properties:
+        id:
+          type: string
+          pattern: '^dp_[a-zA-Z0-9]{24}$'
+        object:
+          type: string
+          enum: [dispute]
+        amount:
+          type: integer
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        status:
+          type: string
+          enum: [warning_needs_response, warning_under_review, warning_closed, needs_response, under_review, won, lost]
+        reason:
+          type: string
+          enum: [credit_not_processed, duplicate, fraudulent, general, product_not_received, product_unacceptable, subscription_canceled, unrecognized]
+        charge:
+          type: string
+          pattern: '^ch_[a-zA-Z0-9]{24}$'
+        evidence:
+          type: object
+          properties:
+            product_description:
+              type: string
+            customer_communication:
+              type: string
+            receipt:
+              type: string
+            shipping_documentation:
+              type: string
+            uncategorized_text:
+              type: string
+        evidence_due_by:
+          type: integer
+          format: unix-time
+        created:
+          type: integer
+          format: unix-time
+
+    Payout:
+      type: object
+      required: [id, amount, currency, status, arrival_date, created]
+      properties:
+        id:
+          type: string
+          pattern: '^po_[a-zA-Z0-9]{24}$'
+        object:
+          type: string
+          enum: [payout]
+        amount:
+          type: integer
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        status:
+          type: string
+          enum: [paid, pending, in_transit, canceled, failed]
+        arrival_date:
+          type: integer
+          format: unix-time
+        automatic:
+          type: boolean
+        failure_code:
+          type: string
+          nullable: true
+        failure_message:
+          type: string
+          nullable: true
+        created:
+          type: integer
+          format: unix-time
+
+    ListResponse:
+      type: object
+      properties:
+        object:
+          type: string
+          enum: [list]
+        data:
+          type: array
+          items:
+            type: object
+        has_more:
+          type: boolean
+        url:
+          type: string
+
+    IdempotencyKey:
+      type: object
+      properties:
+        idempotency_key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: '^[a-zA-Z0-9_-]+$'
+
+paths:
+  /payment_intents:
+    post:
+      tags: [Payment Intents]
+      summary: Create a payment intent
+      operationId: createPaymentIntent
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+          description: Idempotency key for safe retries
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, currency]
+              properties:
+                amount:
+                  type: integer
+                  minimum: 1
+                currency:
+                  type: string
+                  pattern: '^[A-Z]{3}$'
+                payment_method_types:
+                  type: array
+                  items:
+                    type: string
+                customer:
+                  type: string
+                  pattern: '^cus_[a-zA-Z0-9]{14}$'
+                payment_method:
+                  type: string
+                  pattern: '^pm_[a-zA-Z0-9]{24}$'
+                setup_future_usage:
+                  type: string
+                  enum: [off_session, on_session]
+                capture_method:
+                  type: string
+                  enum: [automatic, manual]
+                confirmation_method:
+                  type: string
+                  enum: [automatic, manual]
+                description:
+                  type: string
+                metadata:
+                  type: object
+                  additionalProperties:
+                    type: string
+                receipt_email:
+                  type: string
+                  format: email
+                shipping:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    address:
+                      type: object
+                      required: [line1, city, state, postal_code, country]
+                      properties:
+                        line1:
+                          type: string
+                        line2:
+                          type: string
+                        city:
+                          type: string
+                        state:
+                          type: string
+                        postal_code:
+                          type: string
+                        country:
+                          type: string
+                          pattern: '^[A-Z]{2}$'
+      responses:
+        '200':
+          description: Payment intent created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      tags: [Payment Intents]
+      summary: List payment intents
+      operationId: listPaymentIntents
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: customer
+          in: query
+          schema:
+            type: string
+            pattern: '^cus_[a-zA-Z0-9]{14}$'
+        - name: created
+          in: query
+          schema:
+            type: object
+            properties:
+              gt:
+                type: integer
+              gte:
+                type: integer
+              lt:
+                type: integer
+              lte:
+                type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: starting_after
+          in: query
+          schema:
+            type: string
+        - name: ending_before
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of payment intents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+
+  /payment_intents/{id}:
+    get:
+      tags: [Payment Intents]
+      summary: Retrieve a payment intent
+      operationId: retrievePaymentIntent
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^pi_[a-zA-Z0-9]{24}$'
+      responses:
+        '200':
+          description: Payment intent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Payment Intents]
+      summary: Update a payment intent
+      operationId: updatePaymentIntent
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^pi_[a-zA-Z0-9]{24}$'
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: integer
+                  minimum: 1
+                description:
+                  type: string
+                metadata:
+                  type: object
+                  additionalProperties:
+                    type: string
+                receipt_email:
+                  type: string
+                  format: email
+                shipping:
+                  type: object
+      responses:
+        '200':
+          description: Updated payment intent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+
+  /payment_intents/{id}/confirm:
+    post:
+      tags: [Payments]
+      summary: Confirm a payment intent
+      operationId: confirmPaymentIntent
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^pi_[a-zA-Z0-9]{24}$'
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payment_method:
+                  type: string
+                  pattern: '^pm_[a-zA-Z0-9]{24}$'
+                payment_method_data:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    card:
+                      type: object
+                    billing_details:
+                      type: object
+                return_url:
+                  type: string
+                  format: uri
+                mandate_data:
+                  type: object
+      responses:
+        '200':
+          description: Payment intent confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '400':
+          description: Payment failed or requires action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /payment_intents/{id}/capture:
+    post:
+      tags: [Payments]
+      summary: Capture a payment intent
+      operationId: capturePaymentIntent
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^pi_[a-zA-Z0-9]{24}$'
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: integer
+                  minimum: 1
+                receipt_email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Payment captured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+
+  /payment_intents/{id}/cancel:
+    post:
+      tags: [Payment Intents]
+      summary: Cancel a payment intent
+      operationId: cancelPaymentIntent
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^pi_[a-zA-Z0-9]{24}$'
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cancellation_reason:
+                  type: string
+                  enum: [duplicate, fraudulent, requested_by_customer, abandoned]
+      responses:
+        '200':
+          description: Payment intent canceled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+
+  /refunds:
+    post:
+      tags: [Refunds]
+      summary: Create a refund
+      operationId: createRefund
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [charge]
+              properties:
+                charge:
+                  type: string
+                  pattern: '^ch_[a-zA-Z0-9]{24}$'
+                amount:
+                  type: integer
+                  minimum: 1
+                reason:
+                  type: string
+                  enum: [duplicate, fraudulent, requested_by_customer]
+                metadata:
+                  type: object
+                  additionalProperties:
+                    type: string
+                refund_application_fee:
+                  type: boolean
+                reverse_transfer:
+                  type: boolean
+      responses:
+        '200':
+          description: Refund created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+
+    get:
+      tags: [Refunds]
+      summary: List refunds
+      operationId: listRefunds
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: charge
+          in: query
+          schema:
+            type: string
+            pattern: '^ch_[a-zA-Z0-9]{24}$'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: List of refunds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+
+  /refunds/{id}:
+    get:
+      tags: [Refunds]
+      summary: Retrieve a refund
+      operationId: retrieveRefund
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^re_[a-zA-Z0-9]{24}$'
+      responses:
+        '200':
+          description: Refund details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+
+  /customers:
+    post:
+      tags: [Customers]
+      summary: Create a customer
+      operationId: createCustomer
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                name:
+                  type: string
+                phone:
+                  type: string
+                description:
+                  type: string
+                metadata:
+                  type: object
+                  additionalProperties:
+                    type: string
+                address:
+                  type: object
+                payment_method:
+                  type: string
+                  pattern: '^pm_[a-zA-Z0-9]{24}$'
+                invoice_settings:
+                  type: object
+                  properties:
+                    default_payment_method:
+                      type: string
+      responses:
+        '200':
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+
+    get:
+      tags: [Customers]
+      summary: List customers
+      operationId: listCustomers
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: email
+          in: query
+          schema:
+            type: string
+            format: email
+        - name: created
+          in: query
+          schema:
+            type: object
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+
+  /customers/{id}:
+    get:
+      tags: [Customers]
+      summary: Retrieve a customer
+      operationId: retrieveCustomer
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^cus_[a-zA-Z0-9]{14}$'
+      responses:
+        '200':
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+
+    post:
+      tags: [Customers]
+      summary: Update a customer
+      operationId: updateCustomer
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^cus_[a-zA-Z0-9]{14}$'
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                name:
+                  type: string
+                phone:
+                  type: string
+                metadata:
+                  type: object
+                  additionalProperties:
+                    type: string
+                address:
+                  type: object
+                invoice_settings:
+                  type: object
+      responses:
+        '200':
+          description: Updated customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+
+    delete:
+      tags: [Customers]
+      summary: Delete a customer
+      operationId: deleteCustomer
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^cus_[a-zA-Z0-9]{14}$'
+      responses:
+        '200':
+          description: Customer deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  deleted:
+                    type: boolean
+
+  /payment_methods:
+    post:
+      tags: [Payment Methods]
+      summary: Create a payment method
+      operationId: createPaymentMethod
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type:
+                  type: string
+                  enum: [card, ideal, sepa_debit, sofort, acss_debit, bacs_debit, au_becs_debit, us_bank_account]
+                card:
+                  type: object
+                  required: [number, exp_month, exp_year, cvc]
+                  properties:
+                    number:
+                      type: string
+                    exp_month:
+                      type: integer
+                      minimum: 1
+                      maximum: 12
+                    exp_year:
+                      type: integer
+                    cvc:
+                      type: string
+                    networks:
+                      type: object
+                billing_details:
+                  type: object
+                metadata:
+                  type: object
+      responses:
+        '200':
+          description: Payment method created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethod'
+
+    get:
+      tags: [Payment Methods]
+      summary: List payment methods
+      operationId: listPaymentMethods
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: customer
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^cus_[a-zA-Z0-9]{14}$'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [card, ideal, sepa_debit, sofort, acss_debit, bacs_debit, au_becs_debit, us_bank_account]
+      responses:
+        '200':
+          description: List of payment methods
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+
+  /payment_methods/{id}/attach:
+    post:
+      tags: [Payment Methods]
+      summary: Attach payment method to customer
+      operationId: attachPaymentMethod
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^pm_[a-zA-Z0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer]
+              properties:
+                customer:
+                  type: string
+                  pattern: '^cus_[a-zA-Z0-9]{14}$'
+      responses:
+        '200':
+          description: Payment method attached
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethod'
+
+  /payment_methods/{id}/detach:
+    post:
+      tags: [Payment Methods]
+      summary: Detach payment method from customer
+      operationId: detachPaymentMethod
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^pm_[a-zA-Z0-9]{24}$'
+      responses:
+        '200':
+          description: Payment method detached
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethod'
+
+  /webhook_endpoints:
+    post:
+      tags: [Webhooks]
+      summary: Create a webhook endpoint
+      operationId: createWebhookEndpoint
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, events]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                events:
+                  type: array
+                  items:
+                    type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Webhook endpoint created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpoint'
+
+    get:
+      tags: [Webhooks]
+      summary: List webhook endpoints
+      operationId: listWebhookEndpoints
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: List of webhook endpoints
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+
+  /webhook_endpoints/{id}:
+    get:
+      tags: [Webhooks]
+      summary: Retrieve a webhook endpoint
+      operationId: retrieveWebhookEndpoint
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^we_[a-zA-Z0-9]{24}$'
+      responses:
+        '200':
+          description: Webhook endpoint details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpoint'
+
+    post:
+      tags: [Webhooks]
+      summary: Update a webhook endpoint
+      operationId: updateWebhookEndpoint
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^we_[a-zA-Z0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                events:
+                  type: array
+                  items:
+                    type: string
+                status:
+                  type: string
+                  enum: [enabled, disabled]
+      responses:
+        '200':
+          description: Updated webhook endpoint
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpoint'
+
+    delete:
+      tags: [Webhooks]
+      summary: Delete a webhook endpoint
+      operationId: deleteWebhookEndpoint
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^we_[a-zA-Z0-9]{24}$'
+      responses:
+        '200':
+          description: Webhook endpoint deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  deleted:
+                    type: boolean
+
+  /disputes:
+    get:
+      tags: [Disputes]
+      summary: List disputes
+      operationId: listDisputes
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: List of disputes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+
+  /disputes/{id}:
+    get:
+      tags: [Disputes]
+      summary: Retrieve a dispute
+      operationId: retrieveDispute
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^dp_[a-zA-Z0-9]{24}$'
+      responses:
+        '200':
+          description: Dispute details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dispute'
+
+  /disputes/{id}/evidence:
+    post:
+      tags: [Disputes]
+      summary: Submit dispute evidence
+      operationId: submitDisputeEvidence
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^dp_[a-zA-Z0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                product_description:
+                  type: string
+                customer_communication:
+                  type: string
+                receipt:
+                  type: string
+                shipping_documentation:
+                  type: string
+                uncategorized_text:
+                  type: string
+      responses:
+        '200':
+          description: Evidence submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dispute'
+
+  /payouts:
+    get:
+      tags: [Payouts]
+      summary: List payouts
+      operationId: listPayouts
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [paid, pending, in_transit, canceled, failed]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: List of payouts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+
+  /payouts/{id}:
+    get:
+      tags: [Payouts]
+      summary: Retrieve a payout
+      operationId: retrievePayout
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^po_[a-zA-Z0-9]{24}$'
+      responses:
+        '200':
+          description: Payout details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payout'
+
+  /balance_transactions:
+    get:
+      tags: [Reports]
+      summary: List balance transactions
+      operationId: listBalanceTransactions
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [charge, refund, adjustment, payout, fee]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: List of balance transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'

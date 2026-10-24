@@ -1,0 +1,11 @@
+[
+  {{#each users}}
+  {
+    "email": "user{{@index}}@test.example.com",
+    "password": "TestPass{{@index}}!",
+    "firstName": "Test",
+    "lastName": "User{{@index}}",
+    "role": "{{role}}"
+  }{{#unless @last}},{{/unless}}
+  {{/each}}
+]

@@ -1,0 +1,62 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.5",
+  "theme": "default",
+  "body": [
+    {
+      "type": "Container",
+      "style": "emphasis",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "🚀 SDET Pipeline Started",
+          "weight": "Bolder",
+          "size": "Large",
+          "color": "Accent"
+        },
+        {
+          "type": "TextBlock",
+          "text": "{{workflow}} • Run: {{runId}}",
+          "spacing": "None",
+          "isSubtle": true
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "items": [
+        {
+          "type": "FactSet",
+          "facts": [
+            { "title": "Project:", "value": "{{projectName}}" },
+            { "title": "Branch:", "value": "{{branch}}" },
+            { "title": "Trigger:", "value": "{{trigger}}" },
+            { "title": "Started:", "value": "{{startedAt}}" },
+            { "title": "Stages:", "value": "{{#each stages}}{{this}}, {{/each}}" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.OpenUrl",
+          "title": "View Pipeline",
+          "url": "{{pipelineUrl}}",
+          "style": "positive"
+        },
+        {
+          "type": "Action.OpenUrl",
+          "title": "View Context",
+          "url": "{{contextUrl}}"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "source": "SDET Skills",
+    "timestamp": "{{timestamp}}"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "sdet-*",
+        "command": "node .claude/scripts/state-helpers.js save"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "sdet-*",
+        "command": "node .claude/scripts/state-helpers.js load"
+      }
+    ]
+  }
+}

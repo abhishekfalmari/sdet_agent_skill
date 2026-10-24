@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "sdet-*",
+        "command": "node .claude/scripts/notify-helpers.js notify"
+      }
+    ]
+  }
+}

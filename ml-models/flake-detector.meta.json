@@ -1,0 +1,65 @@
+{
+  "model": "flake-detector",
+  "version": "1.0.0",
+  "format": "ONNX",
+  "framework": "XGBoost",
+  "convertedFrom": "XGBoost 2.0.3",
+  "convertedAt": "2026-10-22T00:00:00Z",
+  "inputSchema": {
+    "name": "input",
+    "type": "float32",
+    "shape": [1, 25],
+    "features": [
+      "test_id_hash",
+      "test_type_encoded",
+      "avg_duration_ms",
+      "pass_rate_30d",
+      "pass_rate_7d",
+      "pass_rate_1d",
+      "failure_count_30d",
+      "consecutive_passes",
+      "consecutive_failures",
+      "time_of_day_encoded",
+      "day_of_week_encoded",
+      "environment_encoded",
+      "code_churn_lines",
+      "files_changed_count",
+      "author_experience_days",
+      "dependency_changes",
+      "config_changes",
+      "data_changes",
+      "flaky_history_flag",
+      "order_dependency_score",
+      "data_dependency_score",
+      "async_operations_count",
+      "network_calls_count",
+      "db_queries_count",
+      "external_api_calls"
+    ]
+  },
+  "outputSchema": {
+    "name": "output",
+    "type": "float32",
+    "shape": [1, 2],
+    "classes": ["stable", "flaky"]
+  },
+  "thresholds": {
+    "flaky": 0.7,
+    "suspicious": 0.5,
+    "stable": 0.3
+  },
+  "performance": {
+    "accuracy": 0.92,
+    "precision": 0.89,
+    "recall": 0.87,
+    "f1": 0.88,
+    "auc": 0.95
+  },
+  "trainingData": {
+    "period": "2026-07-01 to 2026-10-01",
+    "projects": 15,
+    "testRuns": 250000,
+    "flakyTests": 3400
+  },
+  "note": "This is a placeholder. Replace with actual trained model from ml-models release."
+}

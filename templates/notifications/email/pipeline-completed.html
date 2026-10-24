@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDET Pipeline {{#if success}}Completed{{else}}Failed{{/if}}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { padding: 30px; border-radius: 8px 8px 0 0; text-align: center; }
+    .header-success { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; }
+    .header-failed { background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%); color: white; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+    .field { display: flex; margin: 12px 0; padding: 12px; background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .field-label { font-weight: 600; min-width: 120px; color: #555; }
+    .field-value { color: #333; }
+    .section { margin: 24px 0; }
+    .section-title { font-weight: 600; color: #495057; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #dee2e6; }
+    .fact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+    .fact { background: white; padding: 12px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .fact-label { font-size: 12px; color: #868e96; text-transform: uppercase; letter-spacing: 0.5px; }
+    .fact-value { font-weight: 600; color: #333; margin-top: 4px; }
+    .fact-value.success { color: #28a745; }
+    .fact-value.failed { color: #dc3545; }
+    .fact-value.warning { color: #ffc107; }
+    .buttons { text-align: center; margin-top: 30px; }
+    .btn { display: inline-block; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; margin: 0 8px; }
+    .btn-primary { background: #667eea; color: white; }
+    .btn-secondary { background: #e9ecef; color: #495057; }
+    .btn-danger { background: #dc3545; color: white; }
+    .footer { text-align: center; margin-top: 30px; color: #868e96; font-size: 12px; }
+    .conditions, .risks { background: #fff3cd; border: 1px solid #ffc107; padding: 16px; border-radius: 6px; margin: 16px 0; }
+    .conditions-title, .risks-title { font-weight: 600; color: #856404; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="header {{#if success}}header-success{{else}}header-failed{{/if}}">
+    <h1>{{#if success}}✅ Pipeline Completed{{else}}❌ Pipeline Failed{{/if}}</h1>
+    <p>{{workflow}} • Run: {{runId}}</p>
+  </div>
+  <div class="content">
+    <div class="field">
+      <span class="field-label">Project:</span>
+      <span class="field-value">{{projectName}}</span>
+    </div>
+    <div class="field">
+      <span class="field-label">Branch:</span>
+      <span class="field-value">{{branch}}</span>
+    </div>
+    <div class="field">
+      <span class="field-label">Duration:</span>
+      <span class="field-value">{{duration}}</span>
+    </div>
+    <div class="field">
+      <span class="field-label">Completed:</span>
+      <span class="field-value">{{completedAt}}</span>
+    </div>
+    <div class="field">
+      <span class="field-label">Status:</span>
+      <span class="field-value {{#if success}}success{{else}}failed{{/if}}">{{#if success}}Success{{else}}Failed{{/if}}</span>
+    </div>
+
+    {{#if summary}}
+    <div class="section">
+      <div class="section-title">Summary</div>
+      <p>{{summary}}</p>
+    </div>
+    {{/if}}
+
+    {{#if testResults}}
+    <div class="section">
+      <div class="section-title">Test Results</div>
+      <div class="fact-grid">
+        <div class="fact"><div class="fact-label">Passed</div><div class="fact-value success">{{testResults.passed}}</div></div>
+        <div class="fact"><div class="fact-label">Failed</div><div class="fact-value failed">{{testResults.failed}}</div></div>
+        <div class="fact"><div class="fact-label">Skipped</div><div class="fact-value">{{testResults.skipped}}</div></div>
+        <div class="fact"><div class="fact-label">Flaky</div><div class="fact-value warning">{{testResults.flaky}}</div></div>
+        <div class="fact"><div class="fact-label">Pass Rate</div><div class="fact-value">{{testResults.passRate}}%</div></div>
+      </div>
+    </div>
+    {{/if}}
+
+    {{#if qualityGates}}
+    <div class="section">
+      <div class="section-title">Quality Gates</div>
+      <div class="fact-grid">
+        {{#each qualityGates}}
+        <div class="fact">
+          <div class="fact-label">{{name}}</div>
+          <div class="fact-value {{#if passed}}success{{else}}failed{{/if}}">{{#if passed}}✅{{else}}❌{{/if}} {{actual}}/{{threshold}}</div>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+    {{/if}}
+
+    {{#if defects}}
+    <div class="section">
+      <div class="section-title">Defects Created</div>
+      <div class="fact-grid">
+        <div class="fact"><div class="fact-label">Critical</div><div class="fact-value failed">{{defects.critical}}</div></div>
+        <div class="fact"><div class="fact-label">High</div><div class="fact-value failed">{{defects.high}}</div></div>
+        <div class="fact"><div class="fact-label">Medium</div><div class="fact-value warning">{{defects.medium}}</div></div>
+        <div class="fact"><div class="fact-label">Low</div><div class="fact-value">{{defects.low}}</div></div>
+      </div>
+    </div>
+    {{/if}}
+
+    {{#if conditions}}
+    <div class="conditions">
+      <div class="conditions-title">⚠️ Conditions</div>
+      <ul style="margin: 0; padding-left: 20px;">
+        {{#each conditions}}<li>{{this}}</li>{{/each}}
+      </ul>
+    </div>
+    {{/if}}
+
+    {{#if risks}}
+    <div class="risks">
+      <div class="risks-title">⚠️ Risks</div>
+      <ul style="margin: 0; padding-left: 20px;">
+        {{#each risks}}<li>{{this}}</li>{{/each}}
+      </ul>
+    </div>
+    {{/if}}
+
+    <div class="buttons">
+      <a href="{{reportUrl}}" class="btn btn-primary">View Report</a>
+      <a href="{{artifactsUrl}}" class="btn btn-secondary">View Artifacts</a>
+      {{#if failed}}
+      <a href="{{failuresUrl}}" class="btn btn-danger">View Failures</a>
+      {{/if}}
+    </div>
+    <div class="footer">
+      <p>SDET Skills • {{timestamp}}</p>
+    </div>
+  </div>
+</body>
+</html>

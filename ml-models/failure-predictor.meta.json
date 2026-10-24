@@ -1,0 +1,70 @@
+{
+  "model": "failure-predictor",
+  "version": "1.0.0",
+  "format": "ONNX",
+  "framework": "LightGBM",
+  "convertedFrom": "LightGBM 4.1.0",
+  "convertedAt": "2026-10-22T00:00:00Z",
+  "inputSchema": {
+    "name": "input",
+    "type": "float32",
+    "shape": [1, 30],
+    "features": [
+      "test_id_hash",
+      "test_type_encoded",
+      "cyclomatic_complexity",
+      "lines_of_code",
+      "assertion_count",
+      "setup_complexity",
+      "teardown_complexity",
+      "recent_failure_rate",
+      "days_since_last_failure",
+      "total_runs",
+      "code_churn_7d",
+      "code_churn_30d",
+      "authors_count",
+      "primary_author_experience",
+      "review_count",
+      "dependency_failure_rate",
+      "dependency_changes_7d",
+      "api_changes_affecting",
+      "db_schema_changes",
+      "config_changes_affecting",
+      "test_data_changes",
+      "environment_stability_score",
+      "parallel_execution_flag",
+      "resource_contention_score",
+      "time_since_last_run_hours",
+      "schedule_consistency",
+      "historical_flakiness",
+      "requirement_criticality",
+      "business_impact_score",
+      "security_sensitive_flag"
+    ]
+  },
+  "outputSchema": {
+    "name": "output",
+    "type": "float32",
+    "shape": [1, 2],
+    "classes": ["pass", "fail"]
+  },
+  "thresholds": {
+    "high_risk": 0.8,
+    "medium_risk": 0.5,
+    "low_risk": 0.2
+  },
+  "performance": {
+    "accuracy": 0.87,
+    "precision": 0.84,
+    "recall": 0.82,
+    "f1": 0.83,
+    "auc": 0.91
+  },
+  "trainingData": {
+    "period": "2026-07-01 to 2026-10-01",
+    "projects": 15,
+    "testRuns": 250000,
+    "failures": 18500
+  },
+  "note": "This is a placeholder. Replace with actual trained model from ml-models release."
+}

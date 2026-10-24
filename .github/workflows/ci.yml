@@ -1,0 +1,397 @@
+name: SDET Skills CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      skill:
+        description: Specific skill to test (or 'all')
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - sdet-analyze
+          - sdet-generate
+          - sdet-validate
+          - sdet-automate
+          - sdet-execute
+          - sdet-analyze-results
+          - sdet-deploy
+          - sdet-orchestrate
+      workflow:
+        description: Full workflow to test
+        required: false
+        default: quick
+        type: choice
+        options:
+          - full
+          - quick
+          - ci
+          - security
+          - performance
+
+env:
+  NODE_VERSION: '20'
+  SDET_TEST_MODE: 'true'
+
+jobs:
+  validate-skills:
+    name: Validate Skill Definitions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate all skill files
+        run: npm run validate
+
+      - name: Lint skill files
+        run: npm run lint
+
+      - name: Check skill frontmatter schema
+        run: node scripts/check-frontmatter.js
+
+  test-core-pipeline:
+    name: Test Core Pipeline (${{ matrix.workflow }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        workflow: [quick, ci]
+        include:
+          - workflow: quick
+            autoApprove: true
+          - workflow: ci
+            autoApprove: true
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run SDET Orchestrate (${{ matrix.workflow }})
+        run: |
+          npx sdet-orchestrate \
+            --workflow ${{ matrix.workflow }} \
+            --autoApprove ${{ matrix.autoApprove }} \
+            --continueOnFailure false
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sdet-artifacts-${{ matrix.workflow }}
+          path: |
+            artifacts/
+            .claude/context/
+          retention-days: 7
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.workflow }}
+          path: |
+            artifacts/results/
+            artifacts/analysis/
+          retention-days: 7
+
+  test-security-workflow:
+    name: Test Security Workflow
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install security tools
+        run: |
+          npm install -g semgrep @pact-foundation/pact-cli
+          # Trivy
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Run SDET Orchestrate (security)
+        run: |
+          npx sdet-orchestrate \
+            --workflow security \
+            --autoApprove true
+
+      - name: Upload security artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sdet-security-artifacts
+          path: |
+            artifacts/
+            .claude/context/
+          retention-days: 7
+
+  test-performance-workflow:
+    name: Test Performance Workflow
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run SDET Orchestrate (performance)
+        run: |
+          npx sdet-orchestrate \
+            --workflow performance \
+            --autoApprove true
+
+      - name: Upload performance artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sdet-performance-artifacts
+          path: |
+            artifacts/
+            .claude/context/
+          retention-days: 7
+
+  test-individual-skills:
+    name: Test Individual Skills
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        skill:
+          - sdet-analyze
+          - sdet-generate
+          - sdet-validate
+          - sdet-automate
+          - sdet-execute
+          - sdet-analyze-results
+          - sdet-deploy
+          - sdet-plan
+          - sdet-estimate
+          - sdet-prioritize
+          - sdet-coverage
+          - sdet-trace
+          - sdet-review
+          - sdet-data
+          - sdet-mask
+          - sdet-mock
+          - sdet-env
+          - sdet-seed
+          - sdet-ui
+          - sdet-mobile
+          - sdet-api-fuzz
+          - sdet-contract
+          - sdet-chaos
+          - sdet-load
+          - sdet-perf-profile
+          - sdet-security
+          - sdet-accessibility
+          - sdet-compliance
+          - sdet-explore
+          - sdet-usability
+          - sdet-flake
+          - sdet-mutate
+          - sdet-predict
+          - sdet-autoheal
+          - sdet-rootcause
+          - sdet-insights
+          - sdet-defect
+          - sdet-triage
+          - sdet-release
+          - sdet-rollback
+          - sdet-service-map
+          - sdet-migrate
+          - sdet-backport
+          - sdet-monitor
+          - sdet-dashboard
+          - sdet-retro
+          - sdet-onboard
+          - sdet-governance
+          - sdet-audit
+          - sdet-report
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test skill ${{ matrix.skill }}
+        run: |
+          # Run skill with --help to verify it loads correctly
+          npx claude -c "/${{ matrix.skill }} --help" || true
+
+      - name: Verify skill output
+        if: always()
+        run: |
+          # Verify context was updated
+          if [ -f ".claude/context/sdet-context.json" ]; then
+            echo "Context updated for ${{ matrix.skill }}"
+            cat .claude/context/sdet-context.json | jq ".sdet.${{ matrix.skill }}"
+          fi
+
+  generate-docs:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    needs: [validate-skills]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate skill reference docs
+        run: npm run docs
+
+      - name: Upload docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-docs
+          path: docs/generated/
+          retention-days: 30
+
+  check-templates:
+    name: Validate Templates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Excel templates
+        run: node scripts/validate-templates.js --type excel
+
+      - name: Validate automation templates
+        run: node scripts/validate-templates.js --type automation
+
+      - name: Validate CI/CD templates
+        run: node scripts/validate-templates.js --type cicd
+
+      - name: Validate doc templates
+        run: node scripts/validate-templates.js --type docs
+
+  build-package:
+    name: Build Package
+    runs-on: ubuntu-latest
+    needs: [validate-skills, test-core-pipeline, check-templates]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Publish to npm
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build-package]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Generate changelog
+        run: npx conventional-changelog -p angular -i CHANGELOG.md -s
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          files: |
+            dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

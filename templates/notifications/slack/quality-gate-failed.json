@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2007/schema#",
+  "title": "SDET Quality Gate Failed",
+  "type": "object",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "🚨 Quality Gate Failed",
+        "emoji": true
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Pipeline:* {{workflow}} (Run: {{runId}})\n*Stage:* {{stageName}}\n*Project:* {{projectName}}"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Failed Gates:*"
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {{#each failedGates}}
+        {
+          "type": "mrkdwn",
+          "text": "*{{name}}*\nThreshold: {{threshold}}\nActual: {{actual}}\nSeverity: {{severity}}"
+        }
+        {{/each}}
+      ]
+    },
+    {{#if remediation}}
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Remediation:*\n{{remediation}}"
+      }
+    },
+    {{/if}}
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Details",
+            "emoji": true
+          },
+          "url": "{{detailsUrl}}",
+          "style": "danger"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Pipeline",
+            "emoji": true
+          },
+          "url": "{{pipelineUrl}}"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Override (Admin)",
+            "emoji": true
+          },
+          "url": "{{overrideUrl}}",
+          "style": "primary"
+        }
+      ]
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "SDET Skills • {{timestamp}}"
+        }
+      ]
+    }
+  ]
+}

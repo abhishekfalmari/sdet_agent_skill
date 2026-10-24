@@ -1,0 +1,36 @@
+models:
+- batch_size: 32
+  input: float_input
+  name: flake-detector
+  output: probabilities
+  path: flake-detector.onnx
+  timeout_ms: 100
+- batch_size: 32
+  input: float_input
+  name: failure-predictor
+  output: probabilities
+  path: failure-predictor.onnx
+  timeout_ms: 100
+- batch_size: 64
+  input: float_input
+  name: test-prioritizer
+  output: predictions
+  path: test-prioritizer.onnx
+  timeout_ms: 50
+- batch_size: 16
+  input: float_input
+  name: root-cause
+  output: probabilities
+  path: root-cause.onnx
+  timeout_ms: 200
+monitoring:
+  drift_detection: true
+  health_check: /health
+  metrics_port: 9090
+server:
+  host: 0.0.0.0
+  log_level: info
+  port: 8080
+  workers: 4
+service: sdet-ml-serving
+version: 1.0.0

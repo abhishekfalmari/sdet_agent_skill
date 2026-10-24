@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "sdet-orchestrate",
+        "command": "node .claude/scripts/checkpoint-helpers.js save"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "sdet-orchestrate",
+        "command": "node .claude/scripts/checkpoint-helpers.js load"
+      }
+    ]
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2007/schema#",
+  "title": "SDET Pipeline Stage Completed",
+  "type": "object",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "📋 Stage Complete: {{stageName}}",
+        "emoji": true
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Workflow:*\n{{workflow}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Run ID:*\n{{runId}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Stage:*\n{{stageName}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Status:*\n{{#if success}}:white_check_mark: Success{{else}}:x: Failed{{/if}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Duration:*\n{{duration}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Next Stage:*\n{{nextStage}}"
+        }
+      ]
+    },
+    {{#if summary}}
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Summary:*\n{{summary}}"
+      }
+    },
+    {{/if}}
+    {{#if artifacts}}
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Artifacts Generated:*\n{{#each artifacts}}• <{{url}}|{{name}}> ({{size}}){{/each}}"
+      }
+    },
+    {{/if}}
+    {{#if requiresApproval}}
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": ":warning: *Approval Required*\nThis stage requires manual approval before continuing."
+      }
+    },
+    {{/if}}
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Stage Details",
+            "emoji": true
+          },
+          "url": "{{stageUrl}}"
+        },
+        {{#if requiresApproval}}
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Approve & Continue",
+            "emoji": true
+          },
+          "url": "{{approvalUrl}}",
+          "style": "primary"
+        }
+        {{/if}}
+      ]
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "SDET Skills • {{timestamp}}"
+        }
+      ]
+    }
+  ]
+}

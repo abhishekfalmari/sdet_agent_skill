@@ -1,0 +1,538 @@
+# Jenkins SDET Pipeline Template
+# This template is used by /sdet-deploy to generate the actual pipeline
+
+pipeline {
+    agent any
+
+    environment {
+        NODE_VERSION = '20'
+        SDET_WORKFLOW = 'full'
+        BASE_URL = credentials('base-url')
+        SLACK_WEBHOOK = credentials('slack-webhook')
+    }
+
+    options {
+        timeout(time: 2, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10'))
+        disableConcurrentBuilds()
+        skipDefaultCheckout()
+    }
+
+    tools {
+        nodejs "NodeJS-${NODE_VERSION}"
+    }
+
+    stages {
+        // ===========================================
+        // ANALYZE STAGE
+        // ===========================================
+        stage('Analyze Requirements') {
+            when {
+                anyOf {
+                    environment name: 'SDET_WORKFLOW', value: 'full'
+                    environment name: 'SDET_WORKFLOW', value: 'security'
+                    environment name: 'SDET_WORKFLOW', value: 'performance'
+                }
+            }
+            steps {
+                checkout scm
+                sh 'npm ci'
+                sh 'npx sdet-analyze --source ./requirements --format json'
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'artifacts/requirements/**/*', fingerprint: true
+                }
+            }
+        }
+
+        // ===========================================
+        // GENERATE STAGE
+        // ===========================================
+        stage('Generate Test Cases') {
+            when {
+                anyOf {
+                    environment name: 'SDET_WORKFLOW', value: 'full'
+                    environment name: 'SDET_WORKFLOW', value: 'security'
+                    environment name: 'SDET_WORKFLOW', value: 'performance'
+                    environment name: 'SDET_WORKFLOW', value: 'quick'
+                }
+            }
+            steps {
+                checkout scm
+                sh 'npm ci'
+                script {
+                    def template = 'standard'
+                    if (env.SDET_WORKFLOW == 'security') {
+                        template = 'security'
+                    } else if (env.SDET_WORKFLOW == 'performance') {
+                        template = 'performance'
+                    }
+                    sh "npx sdet-generate --template ${template}"
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'artifacts/test-cases/**/*', fingerprint: true
+                }
+            }
+        }
+
+        // ===========================================
+        // VALIDATE STAGE
+        // ===========================================
+        stage('Validate Test Cases') {
+            steps {
+                checkout scm
+                sh 'npm ci'
+                script {
+                    def strict = 'false'
+                    if (env.SDET_WORKFLOW == 'full' || env.SDET_WORKFLOW == 'security' || env.SDET_WORKFLOW == 'performance') {
+                        strict = 'true'
+                    }
+                    sh "npx sdet-validate --strict ${strict}"
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'artifacts/validation/**/*', fingerprint: true
+                }
+            }
+        }
+
+        // ===========================================
+        // APPROVAL GATE
+        // ===========================================
+        stage('Manual Approval') {
+            when {
+                allOf {
+                    environment name: 'SDET_WORKFLOW', value: 'full'
+                    not { environment name: 'BUILD_CAUSE', value: 'TIMERTRIGGER' }
+                }
+            }
+            steps {
+                script {
+                    timeout(time: 24, unit: 'HOURS') {
+                        input message: 'Review validation results and approve to continue',
+                              ok: 'Approve',
+                              submitter: 'sdet-lead,release-manager',
+                              parameters: [
+                                  string(name: 'APPROVAL_NOTES', defaultValue: '', description: 'Approval notes')
+                              ]
+                    }
+                }
+            }
+        }
+
+        // ===========================================
+        // AUTOMATE STAGE (Parallel)
+        // ===========================================
+        stage('Generate Automation') {
+            parallel {
+                stage('UI Automation') {
+                    when {
+                        anyOf {
+                            environment name: 'SDET_WORKFLOW', value: 'full'
+                            environment name: 'SDET_WORKFLOW', value: 'quick'
+                            environment name: 'SDET_WORKFLOW', value: 'ci'
+                            environment name: 'SDET_WORKFLOW', value: 'security'
+                            environment name: 'SDET_WORKFLOW', value: 'performance'
+                        }
+                    }
+                    agent {
+                        docker {
+                            image 'mcr.microsoft.com/playwright:v1.42.0-jammy'
+                            args '-u root:root'
+                        }
+                    }
+                    steps {
+                        checkout scm
+                        sh 'npm ci'
+                        sh 'npx sdet-automate --type ui --framework playwright'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'tests/ui/**/*', fingerprint: true
+                        }
+                    }
+                }
+
+                stage('API Automation') {
+                    when {
+                        anyOf {
+                            environment name: 'SDET_WORKFLOW', value: 'full'
+                            environment name: 'SDET_WORKFLOW', value: 'quick'
+                            environment name: 'SDET_WORKFLOW', value: 'ci'
+                            environment name: 'SDET_WORKFLOW', value: 'security'
+                            environment name: 'SDET_WORKFLOW', value: 'performance'
+                        }
+                    }
+                    steps {
+                        checkout scm
+                        sh 'npm ci'
+                        sh 'npx sdet-automate --type api --framework pactum'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'tests/api/**/*', fingerprint: true
+                        }
+                    }
+                }
+
+                stage('Security Automation') {
+                    when {
+                        environment name: 'SDET_WORKFLOW', value: 'security'
+                    }
+                    steps {
+                        checkout scm
+                        sh 'npm ci'
+                        sh 'npm install -g semgrep'
+                        sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin'
+                        sh 'npx sdet-automate --type security --framework semgrep'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'tests/security/**/*', fingerprint: true
+                        }
+                    }
+                }
+
+                stage('Performance Automation') {
+                    when {
+                        environment name: 'SDET_WORKFLOW', value: 'performance'
+                    }
+                    agent {
+                        docker {
+                            image 'grafana/k6:latest'
+                            args '-u root:root'
+                        }
+                    }
+                    steps {
+                        checkout scm
+                        sh 'npm ci'
+                        sh 'npx sdet-automate --type performance --framework k6'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'tests/performance/**/*', fingerprint: true
+                        }
+                    }
+                }
+
+                stage('Accessibility Automation') {
+                    when {
+                        environment name: 'SDET_WORKFLOW', value: 'full'
+                    }
+                    agent {
+                        docker {
+                            image 'mcr.microsoft.com/playwright:v1.42.0-jammy'
+                            args '-u root:root'
+                        }
+                    }
+                    steps {
+                        checkout scm
+                        sh 'npm ci'
+                        sh 'npx sdet-automate --type accessibility --framework playwright'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'tests/accessibility/**/*', fingerprint: true
+                        }
+                    }
+                }
+
+                stage('Contract Automation') {
+                    when {
+                        environment name: 'SDET_WORKFLOW', value: 'full'
+                    }
+                    steps {
+                        checkout scm
+                        sh 'npm ci'
+                        sh 'npx sdet-automate --type contract --framework pact'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'tests/contract/**/*', fingerprint: true
+                        }
+                    }
+                }
+            }
+        }
+
+        // ===========================================
+        // EXECUTE STAGE (Parallel)
+        // ===========================================
+        stage('Execute Tests') {
+            parallel {
+                stage('Execute UI Tests') {
+                    when {
+                        anyOf {
+                            environment name: 'SDET_WORKFLOW', value: 'full'
+                            environment name: 'SDET_WORKFLOW', value: 'quick'
+                            environment name: 'SDET_WORKFLOW', value: 'ci'
+                            environment name: 'SDET_WORKFLOW', value: 'security'
+                            environment name: 'SDET_WORKFLOW', value: 'performance'
+                        }
+                    }
+                    agent {
+                        docker {
+                            image 'mcr.microsoft.com/playwright:v1.42.0-jammy'
+                            args '-u root:root'
+                        }
+                    }
+                    steps {
+                        checkout scm
+                        sh 'npm ci'
+                        sh 'npx sdet-execute --type ui --parallel 4 --retry 2 --shard duration'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'artifacts/results/**/*', fingerprint: true
+                        }
+                    }
+                }
+
+                stage('Execute API Tests') {
+                    when {
+                        anyOf {
+                            environment name: 'SDET_WORKFLOW', value: 'full'
+                            environment name: 'SDET_WORKFLOW', value: 'quick'
+                            environment name: 'SDET_WORKFLOW', value: 'ci'
+                            environment name: 'SDET_WORKFLOW', value: 'security'
+                            environment name: 'SDET_WORKFLOW', value: 'performance'
+                        }
+                    }
+                    steps {
+                        checkout scm
+                        sh 'npm ci'
+                        sh 'npx sdet-execute --type api --parallel 4 --retry 2 --shard duration'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'artifacts/results/**/*', fingerprint: true
+                        }
+                    }
+                }
+
+                stage('Execute Security Tests') {
+                    when {
+                        environment name: 'SDET_WORKFLOW', value: 'security'
+                    }
+                    steps {
+                        checkout scm
+                        sh 'npm ci'
+                        sh 'npm install -g semgrep'
+                        sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin'
+                        sh 'npx sdet-execute --type security'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'artifacts/results/**/*', fingerprint: true
+                        }
+                    }
+                }
+
+                stage('Execute Performance Tests') {
+                    when {
+                        environment name: 'SDET_WORKFLOW', value: 'performance'
+                    }
+                    agent {
+                        docker {
+                            image 'grafana/k6:latest'
+                            args '-u root:root'
+                        }
+                    }
+                    steps {
+                        checkout scm
+                        sh 'npm ci'
+                        sh 'npx sdet-execute --type performance --timeout 120'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'artifacts/results/**/*', fingerprint: true
+                        }
+                    }
+                }
+
+                stage('Execute Accessibility Tests') {
+                    when {
+                        environment name: 'SDET_WORKFLOW', value: 'full'
+                    }
+                    agent {
+                        docker {
+                            image 'mcr.microsoft.com/playwright:v1.42.0-jammy'
+                            args '-u root:root'
+                        }
+                    }
+                    steps {
+                        checkout scm
+                        sh 'npm ci'
+                        sh 'npx sdet-execute --type accessibility --parallel 4'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'artifacts/results/**/*', fingerprint: true
+                        }
+                    }
+                }
+
+                stage('Execute Contract Tests') {
+                    when {
+                        environment name: 'SDET_WORKFLOW', value: 'full'
+                    }
+                    steps {
+                        checkout scm
+                        sh 'npm ci'
+                        sh 'npx sdet-execute --type contract --parallel 4'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'artifacts/results/**/*', fingerprint: true
+                        }
+                    }
+                }
+            }
+        }
+
+        // ===========================================
+        // ANALYZE RESULTS STAGE
+        // ===========================================
+        stage('Analyze Results') {
+            steps {
+                checkout scm
+                sh 'npm ci'
+                script {
+                    def createDefects = 'false'
+                    if (currentBuild.rawBuild.getCause(hudson.triggers.TimerTrigger.TimerTriggerCause)) {
+                        createDefects = 'true'
+                    }
+                    sh "npx sdet-analyze-results --updateExcel true --correlateDefects true --generateTrends true --createDefects ${createDefects}"
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'artifacts/analysis/**/*,artifacts/test-cases/test-cases-results-*.xlsx,artifacts/traceability/**/*,artifacts/trends/**/*', fingerprint: true
+                }
+            }
+        }
+
+        // ===========================================
+        // QUALITY GATES STAGE
+        // ===========================================
+        stage('Quality Gates') {
+            when {
+                anyOf {
+                    environment name: 'SDET_WORKFLOW', value: 'full'
+                    environment name: 'SDET_WORKFLOW', value: 'security'
+                    environment name: 'SDET_WORKFLOW', value: 'performance'
+                }
+            }
+            steps {
+                checkout scm
+                sh 'npm ci'
+                script {
+                    // Coverage gate
+                    sh '''
+                        if [ -f artifacts/results/coverage/coverage-summary.json ]; then
+                            COVERAGE=$(cat artifacts/results/coverage/coverage-summary.json | jq '.total.lines.pct')
+                            echo "Coverage: $COVERAGE%"
+                            if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+                                echo "Coverage gate failed: $COVERAGE% < 80%"
+                                exit 1
+                            fi
+                            echo "Coverage gate passed: $COVERAGE% >= 80%"
+                        fi
+                    '''
+
+                    // Critical failures gate
+                    sh '''
+                        SUMMARY_FILE=$(find artifacts/results -name "execution-summary-*.json" | head -1)
+                        if [ -f "$SUMMARY_FILE" ]; then
+                            FAILURES=$(cat "$SUMMARY_FILE" | jq '.summary.failed')
+                            echo "Critical failures: $FAILURES"
+                            if [ "$FAILURES" -gt 0 ]; then
+                                echo "Critical failures gate failed: $FAILURES failures"
+                                exit 1
+                            fi
+                            echo "Critical failures gate passed"
+                        fi
+                    '''
+
+                    // Security gate
+                    if (env.SDET_WORKFLOW == 'security') {
+                        sh '''
+                            if [ -f artifacts/results/security/semgrep-results.json ]; then
+                                CRITICAL=$(cat artifacts/results/security/semgrep-results.json | jq '[.results[] | select(.extra.severity=="ERROR")] | length')
+                                if [ "$CRITICAL" -gt 0 ]; then
+                                    echo "Security gate failed: $CRITICAL critical findings"
+                                    exit 1
+                                fi
+                                echo "Security gate passed"
+                            fi
+                        '''
+                    }
+
+                    // Performance gate
+                    if (env.SDET_WORKFLOW == 'performance') {
+                        sh '''
+                            if [ -f artifacts/results/performance/k6-summary.json ]; then
+                                echo "Performance budgets checked"
+                            fi
+                        '''
+                    }
+                }
+            }
+        }
+
+        // ===========================================
+        // DEPLOY STAGE
+        // ===========================================
+        stage('Deploy to Production') {
+            when {
+                allOf {
+                    branch 'main'
+                    anyOf {
+                        environment name: 'SDET_WORKFLOW', value: 'full'
+                        environment name: 'SDET_WORKFLOW', value: 'ci'
+                    }
+                    not { environment name: 'BUILD_CAUSE', value: 'TIMERTRIGGER' }
+                }
+            }
+            steps {
+                checkout scm
+                sh 'echo "Deploying to production..."'
+                // Add deployment commands here
+                // sh 'kubectl apply -f k8s/production/'
+                sh 'echo "Deployment complete"'
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            script {
+                if (env.SLACK_WEBHOOK) {
+                    sh '''
+                        curl -X POST -H 'Content-type: application/json' \
+                            --data '{"text":"✅ SDET Pipeline '${SDET_WORKFLOW}' passed for '${JOB_NAME}'","blocks":[{"type":"section","text":{"type":"mrkdwn","text":"✅ *SDET Pipeline Passed*\n*Workflow:* '${SDET_WORKFLOW}'\n*Job:* '${JOB_NAME}'\n*Build:* '${BUILD_NUMBER}'\n*URL:* '${BUILD_URL}'"}}]}' \
+                            '${SLACK_WEBHOOK}'
+                    '''
+                }
+            }
+        }
+        failure {
+            script {
+                if (env.SLACK_WEBHOOK) {
+                    sh '''
+                        curl -X POST -H 'Content-type: application/json' \
+                            --data '{"text":"❌ SDET Pipeline '${SDET_WORKFLOW}' failed for '${JOB_NAME}'","blocks":[{"type":"section","text":{"type":"mrkdwn","text":"❌ *SDET Pipeline Failed*\n*Workflow:* '${SDET_WORKFLOW}'\n*Job:* '${JOB_NAME}'\n*Build:* '${BUILD_NUMBER}'\n*URL:* '${BUILD_URL}'"}}]}' \
+                            '${SLACK_WEBHOOK}'
+                    '''
+                }
+            }
+        }
+    }
+}

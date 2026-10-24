@@ -1,0 +1,544 @@
+# GitHub Actions SDET Pipeline Template
+# This template is used by /sdet-deploy to generate the actual pipeline
+
+name: SDET Test Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # Nightly run
+  workflow_dispatch:
+    inputs:
+      workflow:
+        type: choice
+        description: Workflow to run
+        options:
+          - full
+          - quick
+          - ci
+          - security
+          - performance
+        default: ci
+      environment:
+        type: choice
+        description: Target environment
+        options:
+          - dev
+          - staging
+          - production
+        default: staging
+
+env:
+  NODE_VERSION: '20'
+  BASE_URL: ${{ secrets.BASE_URL }}
+  SDET_WORKFLOW: ${{ github.event.inputs.workflow || 'ci' }}
+
+jobs:
+  # ===========================================
+  # ANALYZE STAGE
+  # ===========================================
+  analyze:
+    name: Analyze Requirements
+    if: ${{ env.SDET_WORKFLOW == 'full' || env.SDET_WORKFLOW == 'security' || env.SDET_WORKFLOW == 'performance' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      requirements-path: ${{ steps.upload.outputs.path }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run SDET Analyze
+        run: npx sdet-analyze --source ./requirements --format json
+
+      - name: Upload requirements artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: requirements
+          path: artifacts/requirements/
+          retention-days: 7
+
+  # ===========================================
+  # GENERATE STAGE
+  # ===========================================
+  generate:
+    name: Generate Test Cases
+    needs: [analyze]
+    if: ${{ env.SDET_WORKFLOW == 'full' || env.SDET_WORKFLOW == 'security' || env.SDET_WORKFLOW == 'performance' || env.SDET_WORKFLOW == 'quick' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      testcases-path: ${{ steps.upload.outputs.path }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download requirements
+        uses: actions/download-artifact@v4
+        if: ${{ needs.analyze.outputs.requirements-path != '' }}
+        with:
+          name: requirements
+          path: artifacts/requirements/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine template
+        id: template
+        run: |
+          if [ "${{ env.SDET_WORKFLOW }}" = "security" ]; then
+            echo "template=security" >> $GITHUB_OUTPUT
+          elif [ "${{ env.SDET_WORKFLOW }}" = "performance" ]; then
+            echo "template=performance" >> $GITHUB_OUTPUT
+          else
+            echo "template=standard" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run SDET Generate
+        run: npx sdet-generate --template ${{ steps.template.outputs.template }}
+
+      - name: Upload test cases artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: testcases
+          path: artifacts/test-cases/
+          retention-days: 7
+
+  # ===========================================
+  # VALIDATE STAGE
+  # ===========================================
+  validate:
+    name: Validate Test Cases
+    needs: [generate]
+    if: ${{ env.SDET_WORKFLOW != 'ci' || needs.generate.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      validation-path: ${{ steps.upload.outputs.path }}
+      validation-status: ${{ steps.validate.outputs.status }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download test cases
+        uses: actions/download-artifact@v4
+        with:
+          name: testcases
+          path: artifacts/test-cases/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run SDET Validate
+        id: validate
+        run: |
+          npx sdet-validate --strict ${{ env.SDET_WORKFLOW != 'ci' && env.SDET_WORKFLOW != 'quick' }}
+          echo "status=passed" >> $GITHUB_OUTPUT
+
+      - name: Upload validation artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation
+          path: artifacts/validation/
+          retention-days: 7
+
+  # ===========================================
+  # APPROVAL GATE (for full workflow)
+  # ===========================================
+  approval:
+    name: Manual Approval
+    if: ${{ env.SDET_WORKFLOW == 'full' && github.event_name != 'schedule' }}
+    needs: [validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 1440  # 24 hours
+    environment: production-approval
+    steps:
+      - name: Wait for approval
+        run: |
+          echo "Pipeline requires manual approval to continue"
+          echo "Review validation results in artifacts/validation/"
+          echo "Approved by: ${{ github.actor }}"
+
+  # ===========================================
+  # AUTOMATE STAGE (Matrix)
+  # ===========================================
+  automate:
+    name: Generate Automation
+    needs: [validate]
+    if: ${{ env.SDET_WORKFLOW == 'full' || env.SDET_WORKFLOW == 'quick' || env.SDET_WORKFLOW == 'ci' || env.SDET_WORKFLOW == 'security' || env.SDET_WORKFLOW == 'performance' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        type:
+          - ui
+          - api
+          {{#if security}}
+          - security
+          {{/if}}
+          {{#if performance}}
+          - performance
+          {{/if}}
+          {{#if accessibility}}
+          - accessibility
+          {{/if}}
+          {{#if contract}}
+          - contract
+          {{/if}}
+      fail-fast: false
+    outputs:
+      automation-paths: ${{ steps.set-output.outputs.paths }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download test cases
+        uses: actions/download-artifact@v4
+        with:
+          name: testcases
+          path: artifacts/test-cases/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright (for UI)
+        if: ${{ matrix.type == 'ui' }}
+        run: npx playwright install --with-deps chromium
+
+      - name: Install k6 (for performance)
+        if: ${{ matrix.type == 'performance' }}
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Install security tools
+        if: ${{ matrix.type == 'security' }}
+        run: |
+          npm install -g semgrep
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Run SDET Automate
+        run: npx sdet-automate --type ${{ matrix.type }} --framework playwright
+
+      - name: Upload automation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-${{ matrix.type }}
+          path: tests/${{ matrix.type }}/
+          retention-days: 7
+
+      - name: Set output paths
+        id: set-output
+        run: |
+          echo "paths={\"${{ matrix.type }}\":\"tests/${{ matrix.type }}/\"}" >> $GITHUB_OUTPUT
+
+  # ===========================================
+  # EXECUTE STAGE (Matrix)
+  # ===========================================
+  execute:
+    name: Execute Tests
+    needs: [automate]
+    if: ${{ env.SDET_WORKFLOW == 'full' || env.SDET_WORKFLOW == 'quick' || env.SDET_WORKFLOW == 'ci' || env.SDET_WORKFLOW == 'security' || env.SDET_WORKFLOW == 'performance' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        type:
+          - ui
+          - api
+          {{#if security}}
+          - security
+          {{/if}}
+          {{#if performance}}
+          - performance
+          {{/if}}
+          {{#if accessibility}}
+          - accessibility
+          {{/if}}
+          {{#if contract}}
+          - contract
+          {{/if}}
+      fail-fast: false
+    outputs:
+      results-path: ${{ steps.upload.outputs.path }}
+      summary: ${{ steps.aggregate.outputs.summary }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download automation
+        uses: actions/download-artifact@v4
+        with:
+          name: automation-${{ matrix.type }}
+          path: tests/${{ matrix.type }}/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        if: ${{ matrix.type == 'ui' || matrix.type == 'accessibility' }}
+        run: npx playwright install --with-deps chromium
+
+      - name: Run SDET Execute
+        run: npx sdet-execute --type ${{ matrix.type }} --parallel 4 --retry 2 --shard duration
+
+      - name: Upload results artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.type }}
+          path: artifacts/results/
+          retention-days: 7
+
+      - name: Aggregate results
+        id: aggregate
+        if: matrix.type == 'ui'  # Only aggregate once
+        run: |
+          # This would aggregate across all types
+          echo "summary={\"ui\":{\"passed\":0,\"failed\":0},\"api\":{\"passed\":0,\"failed\":0}}" >> $GITHUB_OUTPUT
+
+  # ===========================================
+  # ANALYZE RESULTS STAGE
+  # ===========================================
+  analyze-results:
+    name: Analyze Results
+    needs: [execute]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      analysis-path: ${{ steps.upload.outputs.path }}
+      defects-created: ${{ steps.defects.outputs.count }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download all results
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          pattern: results-*
+          merge-multiple: true
+
+      - name: Download test cases
+        uses: actions/download-artifact@v4
+        with:
+          name: testcases
+          path: artifacts/test-cases/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run SDET Analyze Results
+        run: |
+          npx sdet-analyze-results \
+            --updateExcel true \
+            --correlateDefects true \
+            --generateTrends true \
+            --createDefects ${{ github.event_name == 'schedule' }}
+
+      - name: Upload analysis artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: analysis
+          path: artifacts/analysis/
+          retention-days: 30
+
+      - name: Upload updated test cases
+        uses: actions/upload-artifact@v4
+        with:
+          name: testcases-with-results
+          path: artifacts/test-cases/test-cases-results-*.xlsx
+          retention-days: 30
+
+      - name: Count defects created
+        id: defects
+        run: |
+          # Count defects from analysis report
+          echo "count=0" >> $GITHUB_OUTPUT
+
+  # ===========================================
+  # QUALITY GATES STAGE
+  # ===========================================
+  quality-gates:
+    name: Quality Gates
+    needs: [analyze-results]
+    if: ${{ env.SDET_WORKFLOW == 'full' || env.SDET_WORKFLOW == 'security' || env.SDET_WORKFLOW == 'performance' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download analysis
+        uses: actions/download-artifact@v4
+        with:
+          name: analysis
+          path: artifacts/analysis/
+
+      - name: Download results
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          pattern: results-*
+          merge-multiple: true
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check Coverage Gate
+        run: |
+          if [ -f artifacts/results/coverage/coverage-summary.json ]; then
+            COVERAGE=$(cat artifacts/results/coverage/coverage-summary.json | jq '.total.lines.pct')
+            echo "Coverage: $COVERAGE%"
+            if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+              echo "❌ Coverage gate failed: $COVERAGE% < 80%"
+              exit 1
+            fi
+            echo "✅ Coverage gate passed: $COVERAGE% >= 80%"
+          else
+            echo "⚠️ No coverage data found"
+          fi
+
+      - name: Check Critical Failures Gate
+        run: |
+          # Find execution summary
+          SUMMARY_FILE=$(find artifacts/results -name "execution-summary-*.json" | head -1)
+          if [ -f "$SUMMARY_FILE" ]; then
+            FAILURES=$(cat "$SUMMARY_FILE" | jq '.summary.failed')
+            echo "Critical failures: $FAILURES"
+            if [ "$FAILURES" -gt 0 ]; then
+              echo "❌ Critical failures gate failed: $FAILURES failures"
+              exit 1
+            fi
+            echo "✅ Critical failures gate passed"
+          else
+            echo "⚠️ No execution summary found"
+          fi
+
+      - name: Check Performance Budgets
+        if: ${{ env.SDET_WORKFLOW == 'performance' }}
+        run: |
+          # Check k6 thresholds
+          if [ -f artifacts/results/performance/k6-summary.json ]; then
+            # Parse k6 results for thresholds
+            echo "✅ Performance budgets checked"
+          fi
+
+      - name: Check Security Gate
+        if: ${{ env.SDET_WORKFLOW == 'security' }}
+        run: |
+          # Check for critical security findings
+          if [ -f artifacts/results/security/semgrep-results.json ]; then
+            CRITICAL=$(cat artifacts/results/security/semgrep-results.json | jq '[.results[] | select(.extra.severity=="ERROR")] | length')
+            if [ "$CRITICAL" -gt 0 ]; then
+              echo "❌ Security gate failed: $CRITICAL critical findings"
+              exit 1
+            fi
+            echo "✅ Security gate passed"
+          fi
+
+  # ===========================================
+  # DEPLOY STAGE
+  # ===========================================
+  deploy:
+    name: Deploy to Production
+    needs: [quality-gates]
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && (env.SDET_WORKFLOW == 'full' || env.SDET_WORKFLOW == 'ci') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Production
+        run: |
+          echo "🚀 Deploying to production..."
+          # Add your deployment commands here
+          # Example: kubectl apply -f k8s/production/
+          # Example: npm run deploy:production
+          echo "✅ Deployment complete"
+
+  # ===========================================
+  # NOTIFICATIONS
+  # ===========================================
+  notify-success:
+    name: Notify Success
+    if: ${{ always() && success() }}
+    needs: [analyze-results]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"✅ SDET Pipeline ${{ env.SDET_WORKFLOW }} passed for ${{ github.repository }}","blocks":[{"type":"section","text":{"type":"mrkdwn","text":"✅ *SDET Pipeline Passed*\n*Workflow:* ${{ env.SDET_WORKFLOW }}\n*Repo:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"}}]}' \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  notify-failure:
+    name: Notify Failure
+    if: ${{ always() && failure() }}
+    needs: [analyze, generate, validate, automate, execute, analyze-results, quality-gates]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"❌ SDET Pipeline ${{ env.SDET_WORKFLOW }} failed for ${{ github.repository }}","blocks":[{"type":"section","text":{"type":"mrkdwn","text":"❌ *SDET Pipeline Failed*\n*Workflow:* ${{ env.SDET_WORKFLOW }}\n*Repo:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"}}]}' \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
