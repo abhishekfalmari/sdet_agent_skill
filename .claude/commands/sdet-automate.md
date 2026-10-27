@@ -22,6 +22,10 @@ arguments:
     description: Test data approach (fixture, factory, synthetic, parameterized)
     required: false
     default: fixture
+  - name: useMcp
+    description: Automatically connect to Playwright MCP for browser automation (ui type only)
+    required: false
+    default: "true"
 ---
 
 # SDET Automate Skill
@@ -41,12 +45,23 @@ You are an SDET automation engineer. Generate production-ready test code from va
    - **Performance** (`performance`): Load, stress, spike, soak
    - **Accessibility** (`accessibility`): WCAG, axe-core
    - **Contract** (`contract`): Consumer-driven contracts
-6. **For each type**, generate automation:
+6. **Connect to Playwright MCP** (if `{{useMcp}}` is `true` and type includes `ui`):
+   - Check for available Playwright MCP server (`mcp__playwright__` tools)
+   - If available, connect and establish browser session
+   - Use MCP for: page navigation, element interaction, screenshots, trace collection
+   - Store MCP session info in context for downstream skills (execute, analyze-results)
+7. **For each type**, generate automation:
 
 ### UI Automation (`ui`)
 - **Framework**: `{{framework}}` (playwright, cypress, appium, detox, maestro)
 - **Pattern**: `{{pattern}}` (pom, screenplay, functional, bdd)
 - **Language**: `{{language}}` (typescript, javascript, python)
+- **MCP Integration**: `{{useMcp}}` (true/false) - When enabled, automatically connects to Playwright MCP for:
+  - Browser session management
+  - Page navigation and element interaction
+  - Screenshot capture and visual comparison
+  - Trace collection for debugging
+  - Test execution via MCP tools
 - **Generate**:
   - Page Objects / Screenplay tasks for each unique page/flow
   - Test specs for each test case (grouped by feature)
@@ -54,6 +69,7 @@ You are an SDET automation engineer. Generate production-ready test code from va
   - Helper utilities (waits, assertions, selectors)
   - Configuration (playwright.config.ts, cypress.config.ts)
   - CI scripts (package.json test commands)
+  - **MCP helper utilities** (mcp-client.ts, mcp-session.ts) for MCP integration
 - **Output**: `tests/ui/{{framework}}/`
 
 ### API Automation (`api`)
@@ -114,6 +130,10 @@ You are an SDET automation engineer. Generate production-ready test code from va
    │   ├── tests/
    │   ├── fixtures/
    │   ├── helpers/
+   │   ├── mcp/                    # MCP integration helpers
+   │   │   ├── mcp-client.ts       # MCP connection client
+   │   │   ├── mcp-session.ts      # Browser session management
+   │   │   └── mcp-utils.ts        # MCP utility functions
    │   └── playwright.config.ts
    ├── api/pactum/
    │   ├── clients/
@@ -143,7 +163,9 @@ You are an SDET automation engineer. Generate production-ready test code from va
      types: selectedTypes,
      framework: '{{framework}}',
      pattern: '{{pattern}}',
-     language: '{{language}}'
+     language: '{{language}}',
+     mcpEnabled: {{useMcp}},
+     mcpSession: mcpSessionInfo  // Contains browser info, connection status
    });
    ```
 
@@ -153,6 +175,8 @@ You are an SDET automation engineer. Generate production-ready test code from va
 - `sdet.automation.framework`
 - `sdet.automation.pattern`
 - `sdet.automation.language`
+- `sdet.automation.mcpEnabled` - Whether Playwright MCP was enabled
+- `sdet.automation.mcpSession` - MCP session info (browser, connection status, capabilities)
 
 ## Arguments Reference
 - **type** (optional): Automation type - ui, api, security, performance, accessibility, contract, all. Default: all
@@ -160,6 +184,7 @@ You are an SDET automation engineer. Generate production-ready test code from va
 - **pattern** (optional): Code pattern - pom, screenplay, functional, bdd. Default: pom
 - **language** (optional): Language - typescript, javascript, python, java, csharp. Default: typescript
 - **testDataStrategy** (optional): Test data - fixture, factory, synthetic, parameterized. Default: fixture
+- **useMcp** (optional): Enable Playwright MCP connection for UI automation (true/false). Default: true
 
 ## Output
 - `tests/<type>/<framework>/` - Generated automation code
@@ -172,6 +197,8 @@ You are an SDET automation engineer. Generate production-ready test code from va
 /sdet-automate --type api --framework pactum --testDataStrategy factory
 /sdet-automate --type security --framework all
 /sdet-automate --type all --framework playwright
+/sdet-automate --type ui --framework playwright --useMcp true
+/sdet-automate --type ui --framework playwright --useMcp false
 ```
 
 ## Implementation Notes
@@ -182,3 +209,8 @@ You are an SDET automation engineer. Generate production-ready test code from va
 - Generate maintainable, readable, scalable code
 - Include comprehensive comments and documentation
 - Support incremental generation (only new/changed test cases)
+- **MCP Integration**: When `useMcp` is true and framework is playwright:
+  - Check for available `mcp__playwright__` tools at runtime
+  - Generate MCP client utilities in `tests/ui/playwright/mcp/`
+  - Store MCP session info in shared context for execute skill
+  - Use MCP tools for browser automation instead of direct Playwright calls where possible
